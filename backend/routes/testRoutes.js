@@ -7,6 +7,7 @@ const Job = require('../models/Job');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const ParameterGroup = require('../models/ParameterGroup');
+const Parameter = require('../models/Parameter');
 const { createNotification, notifyAdminOfficers, notifyAdmins } = require('../utils/notifier');
 const { audit } = require('../utils/auditLogger');
 
@@ -84,6 +85,19 @@ router.post('/instances', protect, authorize('HEAD'), async (req, res) => {
     // Group assignments by assignedTo (assistant ID)
     const assistantMap = {};
     if (assignments && Array.isArray(assignments)) {
+      // Bulk-fetch live specifications from Parameter collection (Data Settings source of truth).
+      // This ensures analysts always see the current spec even if Data Settings were updated
+      // after the job was created (job.parameters[].specification may be stale).
+      const nonPanelIds = assignments
+        .filter(a => !a.isPanel && a.parameterId)
+        .map(a => a.parameterId);
+      const liveParams = await Parameter.find(
+        { _id: { $in: nonPanelIds } },
+        'specification'
+      );
+      const liveSpecMap = {};
+      liveParams.forEach(p => { liveSpecMap[p._id.toString()] = p.specification || ''; });
+
       for (const assignment of assignments) {
         const astId = assignment.assignedTo;
         if (!assistantMap[astId]) {
@@ -113,12 +127,15 @@ router.post('/instances', protect, authorize('HEAD'), async (req, res) => {
             }
           }
         } else {
+          // Use live spec from Parameter (Data Settings). Fall back to job-time value if
+          // the Parameter document was somehow not found.
+          const liveSpec = liveSpecMap[String(assignment.parameterId)];
           assistantMap[astId].push({
             parameterId: assignment.parameterId,
             name: assignment.name,
             value: '',
             unit: assignment.unit,
-            specification: assignment.specification || ''
+            specification: liveSpec !== undefined ? liveSpec : (assignment.specification || '')
           });
         }
       }

@@ -486,7 +486,7 @@ export default function AssistantDashboard() {
                 <AlertTriangle size={20} style={{ color: 'var(--color-danger)', marginTop: '2px', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--color-danger)', fontSize: '0.9rem', marginBottom: '0.3rem' }}>
-                    Reassigned by {latestNote.role} — Please correct and resubmit
+                    Reassigned by {latestNote.role} — please correct and resubmit
                   </div>
                   {latestNote.note && (
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-text-main)' }}>"{latestNote.note}"</div>
@@ -531,7 +531,6 @@ export default function AssistantDashboard() {
             {/* Sample Description */}
             <div style={{ padding: '1.25rem', backgroundColor: 'var(--color-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '1rem' }}>📋</span>
                 <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Sample Description</span>
                 {sampleDescription && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>Auto-saved</span>
@@ -601,45 +600,46 @@ export default function AssistantDashboard() {
                         </div>
                       </div>
                       {!isApprovedParam && (
-                        <div className="grid-2">
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, marginBottom: '0.3rem', color: 'var(--color-text-muted)' }}>
-                              Observed Result <span style={{ color: 'var(--color-danger)' }}>*</span>
-                            </label>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              <input 
-                                type="text" 
-                                value={resItem.value} 
-                                onChange={e => handleResultChange(i, 'value', e.target.value)} 
-                                placeholder="Enter value…" 
-                                style={{
-                                  ...inputStyle,
-                                  flex: 1,
-                                  borderColor: (resItem.value && !isNaN(parseFloat(resItem.value)) && parseFloat(resItem.value) < 0) ? 'var(--color-danger)' : 'var(--color-border)'
-                                }} 
-                              />
-                              <UnitDropdown
-                                value={resItem.unit || ''}
-                                onChange={val => handleResultChange(i, 'unit', val)}
-                                units={units}
-                                onRefresh={fetchUnits}
+                        <>
+                          <div className="grid-2">
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, marginBottom: '0.3rem', color: 'var(--color-text-muted)' }}>
+                                Observed Result <span style={{ color: 'var(--color-danger)' }}>*</span>
+                              </label>
+                              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <input 
+                                  type="text" 
+                                  value={resItem.value} 
+                                  onChange={e => handleResultChange(i, 'value', e.target.value)} 
+                                  placeholder="Enter value…" 
+                                  style={{
+                                    ...inputStyle,
+                                    flex: 1,
+                                    borderColor: (resItem.value && !isNaN(parseFloat(resItem.value)) && parseFloat(resItem.value) < 0) ? 'var(--color-danger)' : 'var(--color-border)'
+                                  }} 
+                                />
+                                <UnitDropdown
+                                  value={resItem.unit || ''}
+                                  onChange={val => handleResultChange(i, 'unit', val)}
+                                  units={units}
+                                  onRefresh={fetchUnits}
+                                  inputStyle={inputStyle}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, marginBottom: '0.3rem', color: 'var(--color-text-muted)' }}>Test Method</label>
+                              <TestMethodDropdown 
+                                value={resItem.testMethod}
+                                onChange={val => handleResultChange(i, 'testMethod', val)}
+                                testMethods={testMethods}
+                                onUpdate={handleUpdateTestMethod}
+                                onDelete={handleDeleteTestMethod}
+                                onCreate={handleAddTestMethod}
                                 inputStyle={inputStyle}
                               />
                             </div>
                           </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, marginBottom: '0.3rem', color: 'var(--color-text-muted)' }}>Test Method</label>
-                            <TestMethodDropdown 
-                              value={resItem.testMethod}
-                              onChange={val => handleResultChange(i, 'testMethod', val)}
-                              testMethods={testMethods}
-                              onUpdate={handleUpdateTestMethod}
-                              onDelete={handleDeleteTestMethod}
-                              onCreate={handleAddTestMethod}
-                              inputStyle={inputStyle}
-                            />
-                          </div>
-                        </div>
                           <div style={{ marginTop: '0.75rem' }}>
                             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, marginBottom: '0.3rem', color: 'var(--color-text-muted)' }}>Specification</label>
                             <input
@@ -650,6 +650,7 @@ export default function AssistantDashboard() {
                               style={inputStyle}
                             />
                           </div>
+                        </>
                       )}
                     </div>
                   );

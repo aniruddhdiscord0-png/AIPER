@@ -72,7 +72,21 @@ const CascadingParameterSelector = ({
         const res = await axios.get(`${API_URL}/api/parameters`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setGlobalParameters(res.data || []);
+        const fresh = res.data || [];
+        setGlobalParameters(fresh);
+
+        // Sync live specification into already-selected params so the
+        // "✓ Edit" indicator and dispatch payload always reflect Data Settings.
+        const specMap = {};
+        fresh.forEach(p => { specMap[p._id?.toString()] = p.specification || ''; });
+        setSelectedParams(prev =>
+          prev.map(p => {
+            const id = (p.parameterId?._id || p.parameterId)?.toString();
+            return id && specMap[id] !== undefined
+              ? { ...p, specification: specMap[id] }
+              : p;
+          })
+        );
       } catch (err) {
         console.error('Failed to fetch global parameters', err);
       }

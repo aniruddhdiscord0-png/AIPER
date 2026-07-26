@@ -1086,7 +1086,7 @@ function Dispatcher() {
     } catch (err) {
       alert(
         err.response?.data?.message ||
-          `Error ${type === "send" ? "sending" : "receiving"} transfer`,
+        `Error ${type === "send" ? "sending" : "receiving"} transfer`,
       );
     } finally {
       setTransferLoading(false);
@@ -1136,8 +1136,8 @@ function Dispatcher() {
 
           {/* ── Incoming Transfers ── */}
           {transferListLoading &&
-          incomingTransfers.length === 0 &&
-          outgoingJobs.length === 0 ? (
+            incomingTransfers.length === 0 &&
+            outgoingJobs.length === 0 ? (
             <Spinner message="Loading transfers..." />
           ) : (
             incomingTransfers.length > 0 && (
@@ -1200,7 +1200,7 @@ function Dispatcher() {
                           Sample Serial:{" "}
                           <strong>#{transfer.sampleSerial}</strong>
                           {transfer.jobId?.clientName &&
-                            ` — ${transfer.jobId.clientName}`}
+                            { transfer.jobId.clientName && ` · ${transfer.jobId.clientName}` }
                         </div>
                         <div
                           style={{
@@ -1587,7 +1587,7 @@ function Dispatcher() {
                                     <select
                                       value={
                                         assignments[
-                                          `${job._id}-${p.parameterId._id}`
+                                        `${job._id}-${p.parameterId._id}`
                                         ] || ""
                                       }
                                       onChange={(e) =>
@@ -1676,7 +1676,7 @@ function Dispatcher() {
                                       } catch (err) {
                                         alert(
                                           err.response?.data?.message ||
-                                            "Error approving job",
+                                          "Error approving job",
                                         );
                                       }
                                     }}
@@ -1811,31 +1811,31 @@ function Dispatcher() {
                                         </h3>
                                         {transferState ===
                                           "PENDING_APPROVAL" && (
-                                          <p
-                                            style={{
-                                              color: "var(--color-text-muted)",
-                                              fontSize: "0.9rem",
-                                              marginBottom: 0,
-                                            }}
-                                          >
-                                            Waiting for sibling job to be
-                                            approved before transfer can begin.
-                                          </p>
-                                        )}
+                                            <p
+                                              style={{
+                                                color: "var(--color-text-muted)",
+                                                fontSize: "0.9rem",
+                                                marginBottom: 0,
+                                              }}
+                                            >
+                                              Waiting for sibling job to be
+                                              approved before transfer can begin.
+                                            </p>
+                                          )}
                                         {transferState ===
                                           "PENDING_TRANSFER" && (
-                                          <p
-                                            style={{
-                                              color: "var(--color-text-muted)",
-                                              fontSize: "0.9rem",
-                                              marginBottom: 0,
-                                            }}
-                                          >
-                                            {isNonAnchor
-                                              ? `Please accept the sample transfer in the NABL sibling job (${job.siblingJobId?.jobCode || "sibling"}) first.`
-                                              : "Waiting for Micro department to transfer the sample."}
-                                          </p>
-                                        )}
+                                            <p
+                                              style={{
+                                                color: "var(--color-text-muted)",
+                                                fontSize: "0.9rem",
+                                                marginBottom: 0,
+                                              }}
+                                            >
+                                              {isNonAnchor
+                                                ? `Please accept the sample transfer in the NABL sibling job (${job.siblingJobId?.jobCode || "sibling"}) first.`
+                                                : "Waiting for Micro department to transfer the sample."}
+                                            </p>
+                                          )}
                                         {transferState === "IN_TRANSIT" && (
                                           <p
                                             style={{
@@ -2580,8 +2580,8 @@ function ReviewQueue() {
                               marginBottom: "0.3rem",
                             }}
                           >
-                            <strong>{rh.role}</strong> — {rh.action}{" "}
-                            {rh.note && `("${rh.note}")`} —{" "}
+                            <strong>{rh.role}</strong> {rh.action}{" "}
+                            {rh.note && `("${rh.note}")`}{" "}
                             {new Date(rh.date).toLocaleString()}
                           </div>
                         ))}
@@ -2599,7 +2599,7 @@ function ReviewQueue() {
                         fontSize: '0.875rem'
                       }}>
                         <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--color-text-muted)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          📋 Sample Description
+                          Sample Description
                         </div>
                         <div style={{ color: 'var(--color-text-main)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
                           {inst.sampleDescription}
@@ -2678,6 +2678,7 @@ function ReviewQueue() {
                             <th>Value</th>
                             <th>Unit</th>
                             <th>Test Method</th>
+                            <th>Specification</th>
                             {isReassignMode && <th>Assign To</th>}
                           </tr>
                         </thead>
@@ -2693,7 +2694,8 @@ function ReviewQueue() {
                                     name: `Pesticide Panel (${r.panelName})`,
                                     value: "Multiple",
                                     unit: "mg/kg",
-                                    testMethod: "—",
+                                    testMethod: "N/A",
+                                    specification: "",
                                     isPanelGroup: true,
                                   };
                                   displayResults.push(panelGroups[r.panelName]);
@@ -2712,7 +2714,7 @@ function ReviewQueue() {
                                   onClick={
                                     isReassignMode
                                       ? () =>
-                                          toggleParamSelection(r.parameterId)
+                                        toggleParamSelection(r.parameterId)
                                       : undefined
                                   }
                                   style={{
@@ -2773,7 +2775,10 @@ function ReviewQueue() {
                                   </td>
                                   <td>{r.unit}</td>
                                   <td style={{ fontSize: "0.85rem" }}>
-                                    {r.testMethod || "—"}
+                                    {r.testMethod || "N/A"}
+                                  </td>
+                                  <td style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+                                    {r.isPanelGroup ? "" : (r.specification || "")}
                                   </td>
                                   {isReassignMode && (
                                     <td onClick={(e) => e.stopPropagation()}>
@@ -2872,7 +2877,7 @@ function ReviewQueue() {
                               border: "none",
                               opacity:
                                 selectedCount === 0 ||
-                                submittingReviewId === inst._id
+                                  submittingReviewId === inst._id
                                   ? 0.5
                                   : 1,
                             }}
