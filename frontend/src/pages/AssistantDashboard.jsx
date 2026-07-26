@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
 import axios from 'axios';
 import { Play, Check, Clock, AlertTriangle, RotateCcw, Calendar, X, Edit, Trash2, Plus } from 'lucide-react';
 import { fetchWithCache, invalidateCache, CACHE_KEYS } from '../utils/cache';
@@ -21,9 +22,13 @@ export default function AssistantDashboard() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errorModalData, setErrorModalData] = useState(null); // string for error message
 
-  // Test Method Library State
   const [showAddMethod, setShowAddMethod] = useState(false);
   const [newMethodText, setNewMethodText] = useState('');
+
+  // Sample Description
+  const [sampleDescription, setSampleDescription] = useState('');
+  const descDebounceRef = useRef(null);
+  const isTypingDescRef = useRef(false);
 
   const formatJobCode = (code) => {
     if (!code) return '';
@@ -121,12 +126,23 @@ export default function AssistantDashboard() {
     socket.on('TEST_REVIEWED', updateTasks);
     socket.on('JOB_UPDATED', updateTasks);
     socket.on('JOB_DELETED', updateTasks);
+    socket.on('SAMPLE_DESCRIPTION_UPDATED', ({ jobId, description }) => {
+      // Update the open task's description if it matches (and the analyst isn't currently typing)
+      if (activeTask && activeTask.jobId?.toString() === jobId && !isTypingDescRef.current) {
+        setSampleDescription(description);
+      }
+      // Also update cached task list so re-opening shows latest description
+      setTasks(prev => prev.map(t =>
+        t.jobId?.toString() === jobId ? { ...t, sampleDescription: description } : t
+      ));
+    });
 
     return () => {
       socket.off('JOB_DISTRIBUTED', updateTasks);
       socket.off('TEST_REVIEWED', updateTasks);
       socket.off('JOB_UPDATED', updateTasks);
       socket.off('JOB_DELETED', updateTasks);
+      socket.off('SAMPLE_DESCRIPTION_UPDATED');
     };
   }, [socket]);
 
@@ -194,11 +210,13 @@ export default function AssistantDashboard() {
 
   const openTask = (task) => {
     setActiveTask(task);
+    setSampleDescription(task.sampleDescription || '');
     setResultsData(task.results.map(r => ({ 
       ...r, 
       value: r.value || '',
       isSaved: r.isSaved || false,
-      testMethod: r.testMethod || ''
+      testMethod: r.testMethod || '',
+      specification: r.specification || ''
     })));
     setTestingPeriod({
       startDate: task.testingPeriod?.startDate ? formatDateTimeLocal(task.testingPeriod.startDate) : '',
@@ -208,14 +226,33 @@ export default function AssistantDashboard() {
 
   const closeTask = () => {
     setActiveTask(null);
+    setSampleDescription('');
     setResultsData([]);
     setTestingPeriod({ startDate: '', endDate: '' });
   };
 
+  const handleDescriptionChange = useCallback((val) => {
+    setSampleDescription(val);
+    isTypingDescRef.current = true;
+    if (descDebounceRef.current) clearTimeout(descDebounceRef.current);
+    descDebounceRef.current = setTimeout(async () => {
+      isTypingDescRef.current = false;
+      if (!activeTask?.jobId) return;
+      try {
+        await axios.patch(`${API_URL}/api/jobs/${activeTask.jobId}/sample-description`,
+          { description: val },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+      } catch (err) {
+        console.error('Failed to auto-save sample description', err);
+      }
+    }, 1000);
+  }, [activeTask]);
+
   const handleResultChange = (index, field, val) => {
     const updated = [...resultsData];
     updated[index][field] = val;
-    if (field === 'value' || field === 'unit') {
+    if (field === 'value' || field === 'unit' || field === 'specification') {
       updated[index].isSaved = false;
     }
     setResultsData(updated);
@@ -491,6 +528,28 @@ export default function AssistantDashboard() {
             </div>
 
 
+            {/* Sample Description */}
+            <div style={{ padding: '1.25rem', backgroundColor: 'var(--color-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '1rem' }}>📋</span>
+                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Sample Description</span>
+                {sampleDescription && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>Auto-saved</span>
+                )}
+              </div>
+              <textarea
+                value={sampleDescription}
+                onChange={e => handleDescriptionChange(e.target.value)}
+                placeholder="Describe the sample (appearance, condition, any notable observations)…"
+                rows={3}
+                style={{
+                  ...inputStyle,
+                  resize: 'vertical',
+                  lineHeight: '1.5',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
 
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -581,6 +640,16 @@ export default function AssistantDashboard() {
                             />
                           </div>
                         </div>
+                          <div style={{ marginTop: '0.75rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, marginBottom: '0.3rem', color: 'var(--color-text-muted)' }}>Specification</label>
+                            <input
+                              type="text"
+                              value={resItem.specification || ''}
+                              onChange={e => handleResultChange(i, 'specification', e.target.value)}
+                              placeholder="e.g. Max 10000 CFU/g (optional)…"
+                              style={inputStyle}
+                            />
+                          </div>
                       )}
                     </div>
                   );

@@ -958,6 +958,7 @@ function Dispatcher() {
         name: p.name,
         type: p.type,
         unit: p.unit,
+        specification: p.specification || '',
         isPanel: p.isPanel,
         panelName: p.panelName,
         assignedTo: assignments[`${job._id}-${p.parameterId._id}`],
@@ -2584,6 +2585,25 @@ function ReviewQueue() {
                             {new Date(rh.date).toLocaleString()}
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Sample Description (read-only) */}
+                    {inst.sampleDescription && (
+                      <div style={{
+                        marginBottom: '1rem',
+                        padding: '0.75rem 1rem',
+                        backgroundColor: 'var(--color-surface-hover)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        fontSize: '0.875rem'
+                      }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.35rem', color: 'var(--color-text-muted)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          📋 Sample Description
+                        </div>
+                        <div style={{ color: 'var(--color-text-main)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                          {inst.sampleDescription}
+                        </div>
                       </div>
                     )}
 

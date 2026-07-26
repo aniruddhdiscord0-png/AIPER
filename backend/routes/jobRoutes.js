@@ -474,6 +474,35 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
   }
 });
 
+// PATCH sample description — Analyst updates sample description in real-time
+router.patch('/:id/sample-description', protect, authorize('ASSISTANT'), async (req, res) => {
+  try {
+    const { description } = req.body;
+    if (typeof description !== 'string') {
+      return res.status(400).json({ message: 'description must be a string' });
+    }
+
+    const job = await Job.findByIdAndUpdate(
+      req.params.id,
+      { 'sample.sample_description': description },
+      { new: true, select: 'sample.sample_description' }
+    );
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    // Notify all connected clients so other analysts see the update live
+    if (req.app.get('io')) {
+      req.app.get('io').emit('SAMPLE_DESCRIPTION_UPDATED', {
+        jobId: req.params.id,
+        description
+      });
+    }
+
+    res.json({ description: job.sample?.sample_description });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating sample description', error: err.message });
+  }
+});
+
 // Update an existing job (ADMIN_OFFICER only)
 router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
   try {

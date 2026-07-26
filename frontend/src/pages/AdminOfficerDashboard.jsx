@@ -879,7 +879,7 @@ const BLANK_FORM = {
   sample_quantity: "",
   sample_quantity_unit: "ml",
   sample_count: 1,
-  sample_description: "",
+
   condition_on_receipt: "",
   packing_details: "",
   marking_seal: "",
@@ -1301,7 +1301,7 @@ function Jobs() {
       sample_quantity: j.sample?.sample_quantity?.split(" ")[0] || "",
       sample_quantity_unit: j.sample?.sample_quantity?.split(" ")[1] || "ml",
       sample_count: j.sample?.sample_count || 1,
-      sample_description: j.sample?.sample_description || "",
+
       condition_on_receipt: j.sample?.condition_on_receipt || "",
       packing_details: j.sample?.packing_details || "",
       marking_seal: j.sample?.marking_seal || "",
@@ -1556,7 +1556,7 @@ function Jobs() {
           sample_quantity:
             `${formData.sample_quantity} ${formData.sample_quantity_unit}`.trim(),
           sample_count: parseInt(formData.sample_count) || 1,
-          sample_description: formData.sample_description,
+
           condition_on_receipt: formData.condition_on_receipt,
           packing_details: formData.packing_details,
           marking_seal: formData.marking_seal,
@@ -2582,30 +2582,7 @@ function Jobs() {
                           </div>
                         )}
                       </div>
-                      <div style={{ gridColumn: "1 / -1" }}>
-                        <label
-                          style={{
-                            display: "block",
-                            marginBottom: "0.4rem",
-                            fontWeight: 500,
-                            fontSize: "0.9rem",
-                          }}
-                        >
-                          Sample Description{" "}
-                          <span style={{ color: "var(--color-danger)" }}>
-                            *
-                          </span>
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.sample_description}
-                          onChange={(e) =>
-                            setField("sample_description", e.target.value)
-                          }
-                          required
-                          style={{ width: "100%" }}
-                        />
-                      </div>
+
                       <div style={{ gridColumn: "1 / -1" }}>
                         <label
                           style={{

@@ -53,7 +53,8 @@ const jobSchema = new mongoose.Schema({
     sample_id: { type: String, required: true },
     sample_quantity: { type: String, required: true }, // e.g. "500 ml", "2 kg"
     sample_count: { type: Number, required: true, min: 1, default: 1 },
-    sample_description: { type: String, required: true },
+    sample_description: { type: String, default: '' },
+
     condition_on_receipt: { type: String, required: true },
     packing_details: { type: String },
     marking_seal: { type: String },
