@@ -1199,8 +1199,7 @@ function Dispatcher() {
                         >
                           Sample Serial:{" "}
                           <strong>#{transfer.sampleSerial}</strong>
-                          {transfer.jobId?.clientName &&
-                            { transfer.jobId.clientName && ` · ${transfer.jobId.clientName}` }
+                          {transfer.jobId?.clientName && ` · ${transfer.jobId.clientName}`}
                         </div>
                         <div
                           style={{
