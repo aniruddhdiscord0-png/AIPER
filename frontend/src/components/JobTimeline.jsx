@@ -81,7 +81,7 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
       } else if (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' || dStatus === 'COMPLETED') {
         s3_status = 'completed';
         s3_date = headApproval ? headApproval.date : instance?.updatedAt;
-      } else if (instance) {
+      } else if (dStatus === 'PENDING' && instance) {
         // Fallback if department status is missing or out of sync
         if (instance.status === 'PENDING') {
           s3_status = latestReassign ? 'warning' : 'active';
@@ -95,7 +95,7 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
         s4_status = 'active';
       } else if (dStatus === 'REVIEW_APPROVED' || dStatus === 'COMPLETED') {
         s4_status = 'completed';
-      } else if (instance && instance.status !== 'PENDING') {
+      } else if (dStatus === 'PENDING' && instance && instance.status !== 'PENDING') {
         // Fallback old logic
         if (instance.status === 'PENDING_HEAD_REVIEW') s4_status = 'active';
         else if (headApproval || instance.status === 'COMPLETED') s4_status = 'completed';
