@@ -66,10 +66,23 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
       const latestReassign = [...(instance?.reviewHistory || [])].reverse().find(r => r.action === 'REASSIGN');
 
       const s1_status = 'completed';
-      const s2_status = instance ? 'completed' : 'active';
+      const dStatus = distData?.status || 'PENDING';
+      
+      const s2_status = (dStatus !== 'PENDING' || instance) ? 'completed' : 'active';
 
       let s3_status = 'pending', s3_date = null;
-      if (instance) {
+      let s4_status = 'pending';
+      
+      // Use department-level status for accurate aggregation across multiple analysts
+      if (dStatus === 'ASSIGNED_TO_ASSISTANT') {
+        s3_status = 'active';
+      } else if (dStatus === 'RETURNED') {
+        s3_status = 'warning';
+      } else if (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' || dStatus === 'COMPLETED') {
+        s3_status = 'completed';
+        s3_date = headApproval ? headApproval.date : instance?.updatedAt;
+      } else if (instance) {
+        // Fallback if department status is missing or out of sync
         if (instance.status === 'PENDING') {
           s3_status = latestReassign ? 'warning' : 'active';
         } else {
@@ -78,8 +91,12 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
         }
       }
 
-      let s4_status = 'pending';
-      if (instance && instance.status !== 'PENDING') {
+      if (dStatus === 'PENDING_REVIEW') {
+        s4_status = 'active';
+      } else if (dStatus === 'REVIEW_APPROVED' || dStatus === 'COMPLETED') {
+        s4_status = 'completed';
+      } else if (instance && instance.status !== 'PENDING') {
+        // Fallback old logic
         if (instance.status === 'PENDING_HEAD_REVIEW') s4_status = 'active';
         else if (headApproval || instance.status === 'COMPLETED') s4_status = 'completed';
       }
