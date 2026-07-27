@@ -113,6 +113,7 @@ function audit(event, options = {}) {
       method: req.method,
       url: req.originalUrl,
       ip: req.ip || req.headers?.['x-forwarded-for'],
+      userAgent: req.headers?.['user-agent'],
       statusCode: req.res?.statusCode
     } : undefined
   });
