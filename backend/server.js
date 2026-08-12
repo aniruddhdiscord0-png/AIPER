@@ -22,6 +22,16 @@ const requestLogger = require('./middlewares/requestLogger');
 
 const app = express();
 const server = http.createServer(app);
+
+// Disable ETags to prevent 304 Not Modified empty response issues with Axios
+app.set('etag', false);
+
+// Prevent browser caching of API responses
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 const allowedOrigin = process.env.FRONTEND_URL || '*';
 const io = new Server(server, {
   cors: {
