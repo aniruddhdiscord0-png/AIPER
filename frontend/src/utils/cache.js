@@ -18,7 +18,10 @@ export async function fetchWithCache(url, cacheKey, setter, headers = {}, { cach
     try {
       const raw = sessionStorage.getItem(cacheKey);
       if (raw) {
-        setter(JSON.parse(raw));
+        const parsed = JSON.parse(raw);
+        if (parsed !== null && typeof parsed === 'object') {
+          setter(parsed);
+        }
       }
     } catch (e) {
       // Silently fail if sessionStorage is unavailable or data is corrupt
@@ -30,14 +33,16 @@ export async function fetchWithCache(url, cacheKey, setter, headers = {}, { cach
   const res = await axios.get(url, { headers });
 
   // Step 3: Update the UI with fresh data
-  setter(res.data);
+  if (res.data !== null && typeof res.data === 'object') {
+    setter(res.data);
 
-  // Step 4: Write fresh data back to the cache
-  if (cache) {
-    try {
-      sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
-    } catch (e) {
-      // sessionStorage can throw if storage quota is exceeded; fail silently
+    // Step 4: Write fresh data back to the cache
+    if (cache) {
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
+      } catch (e) {
+        // sessionStorage can throw if storage quota is exceeded; fail silently
+      }
     }
   }
 
