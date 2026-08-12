@@ -23,15 +23,6 @@ const requestLogger = require('./middlewares/requestLogger');
 const app = express();
 const server = http.createServer(app);
 
-// Disable ETags to prevent 304 Not Modified empty response issues with Axios
-app.set('etag', false);
-
-// Prevent browser caching of API responses
-app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store');
-  next();
-});
-
 const allowedOrigin = process.env.FRONTEND_URL || '*';
 const io = new Server(server, {
   cors: {
@@ -87,7 +78,7 @@ mongoose.connect(process.env.MONGODB_URI)
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port ${PORT}`);
       // Drop legacy unique index on sampleSerial if it exists (allows retests to share serial)
-      mongoose.connection.db.collection('jobs').dropIndex('sampleSerial_1').catch(() => {});
+      mongoose.connection.db.collection('jobs').dropIndex('sampleSerial_1').catch(() => { });
     });
   })
   .catch(err => console.error('MongoDB connection error:', err));
