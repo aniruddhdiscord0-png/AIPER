@@ -37,6 +37,9 @@ function Dashboard() {
         const cachedUsers = sessionStorage.getItem(CACHE_KEYS.USERS);
 
         const computeStats = (jobs, instances, users) => {
+          if (!Array.isArray(jobs)) jobs = [];
+          if (!Array.isArray(instances)) instances = [];
+          if (!Array.isArray(users)) users = [];
           const ongoingJobs = jobs.filter(j => {
             const microDone = !j.distribution?.micro?.required || j.distribution.micro.status === 'COMPLETED';
             const chemicalDone = !j.distribution?.chemical?.required || j.distribution.chemical.status === 'COMPLETED';
@@ -56,7 +59,7 @@ function Dashboard() {
           const sortedInstances = [...instances]
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
             .slice(0, 5);
-          
+
           setRecentActivity(sortedInstances);
         };
 
@@ -71,7 +74,7 @@ function Dashboard() {
         ]);
 
         computeStats(jobsRes.data, instancesRes.data, usersRes.data);
-        
+
         sessionStorage.setItem(CACHE_KEYS.JOBS, JSON.stringify(jobsRes.data));
         sessionStorage.setItem(CACHE_KEYS.INSTANCES, JSON.stringify(instancesRes.data));
         sessionStorage.setItem(CACHE_KEYS.USERS, JSON.stringify(usersRes.data));
@@ -107,26 +110,26 @@ function Dashboard() {
       </div>
 
       <div className="stat-cards">
-        <StatCard 
-          icon={Activity} 
-          title="Ongoing Jobs" 
-          value={stats.ongoingJobs} 
-          color="var(--color-primary)" 
-          subtitle="Currently in progress" 
+        <StatCard
+          icon={Activity}
+          title="Ongoing Jobs"
+          value={stats.ongoingJobs}
+          color="var(--color-primary)"
+          subtitle="Currently in progress"
         />
-        <StatCard 
-          icon={CheckCircle} 
-          title="Completed Jobs" 
-          value={stats.completedJobs} 
-          color="var(--color-success)" 
-          subtitle="Fully completed" 
+        <StatCard
+          icon={CheckCircle}
+          title="Completed Jobs"
+          value={stats.completedJobs}
+          color="var(--color-success)"
+          subtitle="Fully completed"
         />
-        <StatCard 
-          icon={UsersIcon} 
-          title="Active Analysts" 
-          value={stats.activeAnalysts} 
-          color="#8B5CF6" 
-          subtitle="Currently working on jobs" 
+        <StatCard
+          icon={UsersIcon}
+          title="Active Analysts"
+          value={stats.activeAnalysts}
+          color="#8B5CF6"
+          subtitle="Currently working on jobs"
         />
       </div>
 
@@ -187,38 +190,38 @@ function StaffTable({ users, isLoading, emptyMessage, onDelete }) {
 
   return (
     <div className="table-scroll">
-    <table style={{ margin: 0 }}>
-      <thead style={{ backgroundColor: 'var(--color-surface-hover)' }}>
-        <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Actions</th></tr>
-      </thead>
-      <tbody>
-        {users.map(u => (
-          <tr key={u._id}>
-            <td style={{ fontWeight: 500 }}>{u.name}</td>
-            <td>{u.email}</td>
-            <td>
-              <span className={`badge ${u.role === 'ADMIN' || u.role === 'ADMIN_OFFICER' ? 'badge-primary' : u.role === 'HEAD' ? 'badge-warning' : 'badge-success'}`}>
-                {u.role}
-              </span>
-            </td>
-            <td>{u.department || 'All'}</td>
-            <td>
-               <button 
-                 onClick={() => {
-                   if (window.confirm(`Are you sure you want to delete ${u.name}?`)) {
-                     onDelete(u._id);
-                   }
-                 }} 
-                 style={{ padding: '0.25rem 0.5rem', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}
-                 title="Delete User"
-               >
-                 <Trash2 size={16} />
-               </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+      <table style={{ margin: 0 }}>
+        <thead style={{ backgroundColor: 'var(--color-surface-hover)' }}>
+          <tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u._id}>
+              <td style={{ fontWeight: 500 }}>{u.name}</td>
+              <td>{u.email}</td>
+              <td>
+                <span className={`badge ${u.role === 'ADMIN' || u.role === 'ADMIN_OFFICER' ? 'badge-primary' : u.role === 'HEAD' ? 'badge-warning' : 'badge-success'}`}>
+                  {u.role}
+                </span>
+              </td>
+              <td>{u.department || 'All'}</td>
+              <td>
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete ${u.name}?`)) {
+                      onDelete(u._id);
+                    }
+                  }}
+                  style={{ padding: '0.25rem 0.5rem', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}
+                  title="Delete User"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -226,13 +229,13 @@ function StaffTable({ users, isLoading, emptyMessage, onDelete }) {
 function CollapsibleSection({ title, count, isOpen, onToggle, children }) {
   return (
     <div className="card" style={{ padding: 0, marginBottom: '1rem', overflow: 'hidden' }}>
-      <div 
+      <div
         onClick={onToggle}
-        style={{ 
-          padding: '1.25rem 1.5rem', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+        style={{
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           cursor: 'pointer',
           backgroundColor: isOpen ? 'var(--color-surface-hover)' : 'white',
           transition: 'background-color 0.2s'
@@ -299,10 +302,10 @@ function UsersPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^\+?[\d\s-]{10,15}$/;
-    
+
     if (!emailRegex.test(formData.email)) {
       setError("Please enter a valid email address.");
       return;
@@ -318,7 +321,7 @@ function UsersPage() {
       setShowForm(false);
       invalidateCache(CACHE_KEYS.USERS);
       fetchUsers();
-      
+
       // Auto-dismiss after 15 seconds so they have time to copy the password
       setTimeout(() => {
         setSuccess('');
@@ -334,7 +337,7 @@ function UsersPage() {
       setSuccess('User successfully removed');
       invalidateCache(CACHE_KEYS.USERS);
       fetchUsers();
-      
+
       setTimeout(() => {
         setSuccess('');
       }, 5000);
@@ -358,7 +361,7 @@ function UsersPage() {
 
       {error && <div style={{ marginBottom: '1rem', color: 'var(--color-danger)', backgroundColor: 'var(--color-danger-light)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>{error}</div>}
       {success && (
-        <div style={{ 
+        <div style={{
           position: 'fixed', top: '6rem', right: '2rem', zIndex: 1000,
           color: 'white', backgroundColor: 'var(--color-success)',
           padding: '1rem 1.5rem', borderRadius: 'var(--radius-md)',
@@ -370,8 +373,8 @@ function UsersPage() {
             <CheckCircle size={20} />
             <span style={{ fontWeight: 500 }}>{success}</span>
           </div>
-          <button 
-            onClick={() => setSuccess('')} 
+          <button
+            onClick={() => setSuccess('')}
             style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '0.2rem', display: 'flex' }}
             title="Dismiss"
           >
@@ -391,32 +394,32 @@ function UsersPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: 500 }}>Email Address</label>
-                <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+                <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '1rem' }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: 500 }}>Phone Number</label>
-                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required />
+                <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} required />
               </div>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: 500 }}>Password (Auto-generated)</label>
-                <input type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                <input type="text" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} required />
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '1rem' }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: 500 }}>Role</label>
-                <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} required style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-main)', width: '100%', fontSize: '0.95rem' }}>
+                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} required style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-main)', width: '100%', fontSize: '0.95rem' }}>
                   <option value="ADMIN_OFFICER">Admin Officer</option>
                   <option value="ADMIN">System Admin</option>
                 </select>
               </div>
               <div style={{ flex: 1 }}></div>
             </div>
-            
+
             <div>
               <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Submit & Create User</button>
             </div>
@@ -425,8 +428,8 @@ function UsersPage() {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <CollapsibleSection 
-          title="Management" 
+        <CollapsibleSection
+          title="Management"
           count={managementUsers.length}
           isOpen={expanded.management}
           onToggle={() => toggleSection('management')}
@@ -434,8 +437,8 @@ function UsersPage() {
           <StaffTable users={managementUsers} isLoading={usersLoading} emptyMessage="No management staff found" onDelete={handleDeleteUser} />
         </CollapsibleSection>
 
-        <CollapsibleSection 
-          title="Department Heads" 
+        <CollapsibleSection
+          title="Department Heads"
           count={headUsers.length}
           isOpen={expanded.heads}
           onToggle={() => toggleSection('heads')}
@@ -443,8 +446,8 @@ function UsersPage() {
           <StaffTable users={headUsers} isLoading={usersLoading} emptyMessage="No department heads found" onDelete={handleDeleteUser} />
         </CollapsibleSection>
 
-        <CollapsibleSection 
-          title="Lab Assistants" 
+        <CollapsibleSection
+          title="Lab Assistants"
           count={assistantUsers.length}
           isOpen={expanded.assistants}
           onToggle={() => toggleSection('assistants')}

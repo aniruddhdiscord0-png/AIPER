@@ -66,6 +66,9 @@ function Dashboard() {
         const cachedUsers = sessionStorage.getItem(CACHE_KEYS.USERS);
 
         const computeStats = (jobs, instances, users) => {
+          if (!Array.isArray(jobs)) jobs = [];
+          if (!Array.isArray(instances)) instances = [];
+          if (!Array.isArray(users)) users = [];
           const ongoingJobs = jobs.filter((j) => {
             const microDone =
               !j.distribution?.micro?.required ||
@@ -1311,8 +1314,8 @@ function Jobs() {
         : "",
       received_date_mm: j.sample?.received_date
         ? (new Date(j.sample.received_date).getMonth() + 1)
-            .toString()
-            .padStart(2, "0")
+          .toString()
+          .padStart(2, "0")
         : "",
       received_date_yyyy: j.sample?.received_date
         ? new Date(j.sample.received_date).getFullYear().toString()
@@ -1375,7 +1378,7 @@ function Jobs() {
     setNablGroupMetadata(j.nablGroupMetadata || j.groupMetadata || null);
     setNablPesticidePanel(
       j.nablPesticidePanel ||
-        j.pesticidePanel || { enabled: false, panelType: null },
+      j.pesticidePanel || { enabled: false, panelType: null },
     );
 
     setNonNablParams(mapParams(j.nonNablParameters || j.parameters)); // Fallback
@@ -1385,7 +1388,7 @@ function Jobs() {
     setNonNablGroupMetadata(j.nonNablGroupMetadata || j.groupMetadata || null);
     setNonNablPesticidePanel(
       j.nonNablPesticidePanel ||
-        j.pesticidePanel || { enabled: false, panelType: null },
+      j.pesticidePanel || { enabled: false, panelType: null },
     );
 
     setShowForm(true);
@@ -1758,7 +1761,7 @@ function Jobs() {
               if (returnEvent) returnNote = returnEvent.note;
             }
           }
-          
+
           const isCancelled = editingJob?.status === "CANCELLED";
 
           return (
@@ -2787,55 +2790,55 @@ function Jobs() {
 
                         {(formData.nabl_mode === "nabl" ||
                           formData.nabl_mode === "hybrid") && (
-                          <div
-                            style={{
-                              marginBottom: "1.5rem",
-                              backgroundColor: "#eff6ff",
-                              padding: "1rem",
-                              borderRadius: "var(--radius-md)",
-                              border: "1px solid #bfdbfe",
-                            }}
-                          >
-                            <label
-                              style={{
-                                display: "block",
-                                marginBottom: "0.4rem",
-                                fontWeight: 600,
-                                fontSize: "0.9rem",
-                                color: "#1e3a8a",
-                              }}
-                            >
-                              ULR Number {editingJobId ? '' : '(Auto-assigned)'}{" "}
-                              <span style={{ color: "var(--color-danger)" }}>
-                                *
-                              </span>
-                            </label>
-                            <input
-                              value={editingJobId ? (formData.ulr_no || 'N/A') : ulrPreview}
-                              readOnly
-                              style={{
-                                width: "100%",
-                                backgroundColor: "transparent",
-                                border: "1px solid #93c5fd",
-                                color: "#1e40af",
-                                fontWeight: 700,
-                                letterSpacing: "0.05em",
-                              }}
-                            />
-                            {!editingJobId && (
                             <div
                               style={{
-                                fontSize: "0.75rem",
-                                color: "#3b82f6",
-                                marginTop: "0.4rem",
+                                marginBottom: "1.5rem",
+                                backgroundColor: "#eff6ff",
+                                padding: "1rem",
+                                borderRadius: "var(--radius-md)",
+                                border: "1px solid #bfdbfe",
                               }}
                             >
-                              This ULR will be officially assigned when the job
-                              is submitted.
+                              <label
+                                style={{
+                                  display: "block",
+                                  marginBottom: "0.4rem",
+                                  fontWeight: 600,
+                                  fontSize: "0.9rem",
+                                  color: "#1e3a8a",
+                                }}
+                              >
+                                ULR Number {editingJobId ? '' : '(Auto-assigned)'}{" "}
+                                <span style={{ color: "var(--color-danger)" }}>
+                                  *
+                                </span>
+                              </label>
+                              <input
+                                value={editingJobId ? (formData.ulr_no || 'N/A') : ulrPreview}
+                                readOnly
+                                style={{
+                                  width: "100%",
+                                  backgroundColor: "transparent",
+                                  border: "1px solid #93c5fd",
+                                  color: "#1e40af",
+                                  fontWeight: 700,
+                                  letterSpacing: "0.05em",
+                                }}
+                              />
+                              {!editingJobId && (
+                                <div
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    color: "#3b82f6",
+                                    marginTop: "0.4rem",
+                                  }}
+                                >
+                                  This ULR will be officially assigned when the job
+                                  is submitted.
+                                </div>
+                              )}
                             </div>
-                            )}
-                          </div>
-                        )}
+                          )}
 
                         <div
                           style={{

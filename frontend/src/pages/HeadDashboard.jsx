@@ -62,6 +62,8 @@ function Dashboard() {
         // Note: sample-transfers aren't globally cached yet, so we'll just skip them in the 0ms render or use 0
 
         const computeStats = (jobs, instances, pendingIn, pendingOut) => {
+          if (!Array.isArray(jobs)) jobs = [];
+          if (!Array.isArray(instances)) instances = [];
           const ongoingJobs = jobs.filter((j) => {
             const microDone =
               !j.distribution?.micro?.required ||
