@@ -19,8 +19,9 @@ export default function NotificationBell() {
       const res = await axios.get(`${API_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setNotifications(res.data);
-      setUnreadCount(res.data.filter(n => !n.read).length);
+      const data = Array.isArray(res.data) ? res.data : [];
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.read).length);
     } catch (err) {
       if (axios.isCancel(err) || err.message === 'canceled' || err.message === 'Request aborted' || err.code === 'ERR_CANCELED') return;
       console.error('Error fetching notifications:', err);

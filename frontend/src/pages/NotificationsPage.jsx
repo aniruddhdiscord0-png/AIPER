@@ -19,7 +19,7 @@ export default function NotificationsPage() {
       const res = await axios.get(`${API_URL}/api/notifications`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setNotifications(res.data);
+      setNotifications(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
     } finally {
