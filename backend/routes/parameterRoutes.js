@@ -3,9 +3,10 @@ const router = express.Router();
 const Parameter = require('../models/Parameter');
 const Job = require('../models/Job');
 const { protect } = require('../middlewares/authMiddleware');
+const { cacheMiddleware, invalidateByPrefix } = require('../utils/serverCache');
 
 // Get all parameters, optionally search by name (ranked by relevance)
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, cacheMiddleware('parameters'), async (req, res) => {
   try {
     const query = {};
     const searchTerm = req.query.search;
@@ -71,6 +72,7 @@ router.post('/', protect, async (req, res) => {
     const s_no = (last && last.s_no) ? last.s_no + 1 : 1;
 
     const parameter = await Parameter.create({ name: name.trim(), type, unit: unit.trim(), s_no, specification: specification || '' });
+    invalidateByPrefix('parameters');
     res.status(201).json(parameter);
   } catch (err) {
     res.status(500).json({ message: 'Error creating parameter', error: err.message });
@@ -111,6 +113,7 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Parameter not found' });
     }
 
+    invalidateByPrefix('parameters');
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Error updating parameter', error: err.message });
@@ -135,6 +138,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Parameter not found' });
     }
 
+    invalidateByPrefix('parameters');
     res.json({ message: `Parameter "${deleted.name}" deleted successfully` });
   } catch (err) {
     res.status(500).json({ message: 'Error deleting parameter', error: err.message });

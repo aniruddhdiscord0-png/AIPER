@@ -4,9 +4,10 @@ const User = require('../models/User');
 const { protect } = require('../middlewares/authMiddleware');
 const { authorize } = require('../middlewares/roleMiddleware');
 const { audit } = require('../utils/auditLogger');
+const { cacheMiddleware, invalidateByPrefix } = require('../utils/serverCache');
 
 // Get all users (Admin sees all, Admin Officer sees all except Admin maybe? Let's just let Admin/Admin Officer see all. Head sees their assistants)
-router.get('/', protect, authorize('ADMIN', 'ADMIN_OFFICER', 'HEAD'), async (req, res) => {
+router.get('/', protect, authorize('ADMIN', 'ADMIN_OFFICER', 'HEAD'), cacheMiddleware('users'), async (req, res) => {
   try {
     let query = {};
     if (req.user.role === 'HEAD') {
@@ -64,6 +65,8 @@ router.post('/', protect, authorize('ADMIN', 'ADMIN_OFFICER', 'HEAD'), async (re
       temporaryPassword: defaultPassword 
     });
 
+    invalidateByPrefix('users');
+
     audit('USER_CREATED', {
       req,
       message: `User ${user.email} (${user.role}) created`,
@@ -113,6 +116,7 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER', 'HEAD'), async (req, res)
       fields: ['name', 'email', 'phone', 'department', 'branch']
     });
 
+    invalidateByPrefix('users');
     res.json(userToEdit);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -146,6 +150,7 @@ router.delete('/:id', protect, authorize('ADMIN', 'ADMIN_OFFICER', 'HEAD'), asyn
       target: { model: 'User', documentId: userToDelete._id.toString(), identifier: userToDelete.email }
     });
 
+    invalidateByPrefix('users');
     res.json({ message: 'User removed' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

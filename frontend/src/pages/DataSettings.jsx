@@ -16,13 +16,14 @@ import {
 } from "lucide-react";
 import Spinner from "../components/Spinner";
 import { fetchWithCache, invalidateCache, CACHE_KEYS } from "../utils/cache";
+import InfiniteScroll from "../components/InfiniteScroll";
 
 export default function DataSettings() {
   const { user } = useContext(AuthContext);
   const [data, setData] = useState([]);
   const [globalParameters, setGlobalParameters] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [paramsLoading, setParamsLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !sessionStorage.getItem(CACHE_KEYS.GROUPS));
+  const [paramsLoading, setParamsLoading] = useState(() => !sessionStorage.getItem(CACHE_KEYS.GLOBAL_PARAMS));
   const [error, setError] = useState("");
 
   // Sample Serial State
@@ -74,6 +75,8 @@ export default function DataSettings() {
   // Subgroup details state (Categories & Parameters)
   const [newCategory, setNewCategory] = useState("");
   const [paramSearch, setParamSearch] = useState("");
+  const [paramPage, setParamPage] = useState(1);
+  const PARAMS_PER_PAGE = 50;
   const [isAddingParam, setIsAddingParam] = useState(false);
   const [newParam, setNewParam] = useState({
     name: "",
@@ -477,6 +480,15 @@ export default function DataSettings() {
 
   // Calculate groups
   const groups = Array.from(new Set(data.map((d) => d.group))).sort();
+
+  const filteredGlobalParams = globalParameters.filter(
+    (p) => !paramSearch || p.name.toLowerCase().includes(paramSearch.toLowerCase())
+  );
+  const totalParamPages = Math.ceil(filteredGlobalParams.length / PARAMS_PER_PAGE);
+  const visibleGlobalParams = filteredGlobalParams.slice(
+    0,
+    paramPage * PARAMS_PER_PAGE
+  );
 
   return (
     <div style={{ paddingBottom: "3rem" }}>
@@ -1241,7 +1253,10 @@ export default function DataSettings() {
             <input
               placeholder="Search parameters..."
               value={paramSearch}
-              onChange={(e) => setParamSearch(e.target.value)}
+              onChange={(e) => {
+                setParamSearch(e.target.value);
+                setParamPage(1);
+              }}
               style={{
                 border: "none",
                 outline: "none",
@@ -1274,6 +1289,7 @@ export default function DataSettings() {
               <Spinner message="Loading parameter library..." />
             </div>
           ) : (
+            <>
             <table
               style={{
                 width: "100%",
@@ -1342,13 +1358,7 @@ export default function DataSettings() {
                 </tr>
               </thead>
               <tbody>
-                {globalParameters
-                  .filter(
-                    (p) =>
-                      !paramSearch ||
-                      p.name.toLowerCase().includes(paramSearch.toLowerCase()),
-                  )
-                  .map((p) => (
+                {visibleGlobalParams.map((p) => (
                     <tr
                       key={p._id}
                       style={{ borderBottom: "1px solid var(--color-border)" }}
@@ -1491,7 +1501,7 @@ export default function DataSettings() {
                       </td>
                     </tr>
                   ))}
-                {globalParameters.length === 0 && (
+                {visibleGlobalParams.length === 0 && (
                   <tr>
                     <td
                       colSpan="5"
@@ -1507,6 +1517,13 @@ export default function DataSettings() {
                 )}
               </tbody>
             </table>
+            
+            <InfiniteScroll 
+              hasMore={paramPage < totalParamPages} 
+              isLoading={false} 
+              onLoadMore={() => setParamPage(p => p + 1)} 
+            />
+            </>
           )}
         </div>
 

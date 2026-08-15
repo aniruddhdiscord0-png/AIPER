@@ -1,0 +1,32 @@
+
+> backend@1.0.0 dev
+> nodemon server.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server.js`[39m
+◇ injected env (11) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Connected to MongoDB Atlas
+[Logger] MongoDB logging enabled (direct writes to SystemLog collection)
+04:34:21 ✗ UNCAUGHT_EXCEPTION Uncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:5000
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+◇ injected env (11) from .env // tip: ⌘ override existing { override: true }
+Connected to MongoDB Atlas
+[Logger] MongoDB logging enabled (direct writes to SystemLog collection)
+Server running on port 5000
+Client connected to WebSockets: kxzz2xjf1fAtHHTMAAAB
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+◇ injected env (11) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Connected to MongoDB Atlas
+[Logger] MongoDB logging enabled (direct writes to SystemLog collection)
+Server running on port 5000
+Client connected to WebSockets: OJyBCPKerIdt1O7EAAAB
+Client disconnected: OJyBCPKerIdt1O7EAAAB
+Client connected to WebSockets: 1Wxv6oJAUHGG7wSDAAAD

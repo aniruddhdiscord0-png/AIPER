@@ -4,6 +4,7 @@ const ParameterGroup = require('../models/ParameterGroup');
 const Parameter = require('../models/Parameter');
 const Job = require('../models/Job');
 const { protect } = require('../middlewares/authMiddleware');
+const { invalidateByPrefix } = require('../utils/serverCache');
 
 // ═══════════════════════════════════
 //  GROUPS
@@ -29,7 +30,7 @@ router.post('/groups', protect, async (req, res) => {
       isPesticidePanel: false
     });
 
-    res.status(201).json({ message: `Group "${trimmed}" created`, group: trimmed });
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.status(201).json({ message: `Group "${trimmed}" created`, group: trimmed });
   } catch (err) {
     res.status(500).json({ message: 'Error creating group', error: err.message });
   }
@@ -54,7 +55,7 @@ router.put('/groups/:oldName', protect, async (req, res) => {
     // Cascade rename to Parameter model
     await Parameter.updateMany({ group: oldName }, { $set: { group: trimmed } });
 
-    res.json({ message: `Renamed "${oldName}" to "${trimmed}"`, updated: pgResult.modifiedCount });
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.json({ message: `Renamed "${oldName}" to "${trimmed}"`, updated: pgResult.modifiedCount });
   } catch (err) {
     res.status(500).json({ message: 'Error renaming group', error: err.message });
   }
@@ -89,7 +90,7 @@ router.delete('/groups/:name', protect, async (req, res) => {
     }
 
     await ParameterGroup.deleteMany({ group: name });
-    res.json({ message: `Group "${name}" and all its subgroups deleted` });
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.json({ message: `Group "${name}" and all its subgroups deleted` });
   } catch (err) {
     res.status(500).json({ message: 'Error deleting group', error: err.message });
   }
@@ -121,7 +122,7 @@ router.post('/subgroups', protect, async (req, res) => {
       isPesticidePanel: false
     });
 
-    res.status(201).json(doc);
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.status(201).json(doc);
   } catch (err) {
     res.status(500).json({ message: 'Error creating subgroup', error: err.message });
   }
@@ -146,7 +147,7 @@ router.put('/subgroups/:id', protect, async (req, res) => {
     doc.subGroup = newName.trim();
     await doc.save();
 
-    res.json(doc);
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.json(doc);
   } catch (err) {
     res.status(500).json({ message: 'Error renaming subgroup', error: err.message });
   }
@@ -189,7 +190,7 @@ router.delete('/subgroups/:id', protect, async (req, res) => {
       });
     }
 
-    res.json({ message: `Subgroup "${doc.subGroup}" deleted` });
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.json({ message: `Subgroup "${doc.subGroup}" deleted` });
   } catch (err) {
     res.status(500).json({ message: 'Error deleting subgroup', error: err.message });
   }
@@ -212,7 +213,7 @@ router.put('/subgroups/:id/categories', protect, async (req, res) => {
     );
     if (!doc) return res.status(404).json({ message: 'Subgroup not found' });
 
-    res.json(doc);
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.json(doc);
   } catch (err) {
     res.status(500).json({ message: 'Error updating categories', error: err.message });
   }
@@ -256,7 +257,7 @@ router.post('/subgroups/:id/parameters', protect, async (req, res) => {
     subGroupDoc.parameters.push({ parameterId: param._id, name: param.name });
     await subGroupDoc.save();
 
-    res.status(201).json({ parameter: param, subGroup: subGroupDoc });
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.status(201).json({ parameter: param, subGroup: subGroupDoc });
   } catch (err) {
     res.status(500).json({ message: 'Error adding parameter', error: err.message });
   }
@@ -287,7 +288,7 @@ router.delete('/subgroups/:id/parameters/:paramId', protect, async (req, res) =>
     );
     await subGroupDoc.save();
 
-    res.json({ message: 'Parameter removed from subgroup' });
+    invalidateByPrefix('groups'); invalidateByPrefix('parameters'); res.json({ message: 'Parameter removed from subgroup' });
   } catch (err) {
     res.status(500).json({ message: 'Error removing parameter', error: err.message });
   }

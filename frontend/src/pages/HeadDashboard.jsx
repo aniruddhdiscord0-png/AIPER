@@ -28,6 +28,7 @@ import JobLogTable from "../components/JobLogTable";
 import JobDetailsModal from "../components/JobDetailsModal";
 import { fetchWithCache, invalidateCache, CACHE_KEYS } from "../utils/cache";
 import Spinner from "../components/Spinner";
+import InfiniteScroll from "../components/InfiniteScroll";
 import { useSocket } from "../context/SocketContext";
 import API_URL from "../utils/api";
 import DataSettings from "./DataSettings";
@@ -57,31 +58,14 @@ function Dashboard() {
     const fetchStats = async () => {
       try {
         // Use cache for initial render
-        const cachedJobs = sessionStorage.getItem(CACHE_KEYS.JOBS);
+        const cachedStats = sessionStorage.getItem(CACHE_KEYS.STATS);
         const cachedInstances = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
         // Note: sample-transfers aren't globally cached yet, so we'll just skip them in the 0ms render or use 0
 
-        const computeStats = (jobs, instances, pendingIn, pendingOut) => {
-          if (!Array.isArray(jobs)) jobs = [];
+        const computeStats = (statsObj, instances, pendingIn, pendingOut) => {
+          if (!statsObj) statsObj = { ongoingJobs: 0, completedJobs: 0 };
           if (!Array.isArray(instances)) instances = [];
-          const ongoingJobs = jobs.filter((j) => {
-            const microDone =
-              !j.distribution?.micro?.required ||
-              j.distribution.micro.status === "COMPLETED";
-            const chemicalDone =
-              !j.distribution?.chemical?.required ||
-              j.distribution.chemical.status === "COMPLETED";
-            return !(microDone && chemicalDone);
-          }).length;
-          const completedJobs = jobs.filter((j) => {
-            const microDone =
-              !j.distribution?.micro?.required ||
-              j.distribution.micro.status === "COMPLETED";
-            const chemicalDone =
-              !j.distribution?.chemical?.required ||
-              j.distribution.chemical.status === "COMPLETED";
-            return microDone && chemicalDone;
-          }).length;
+          
           const activeAnalysts = new Set(
             instances
               .filter((i) => i.status === "PENDING" && i.assignedTo)
@@ -91,8 +75,8 @@ function Dashboard() {
           const pendingTransfers = pendingIn + pendingOut;
 
           setStats({
-            ongoingJobs,
-            completedJobs,
+            ongoingJobs: statsObj.ongoingJobs || 0,
+            completedJobs: statsObj.completedJobs || 0,
             activeAnalysts,
             pendingTransfers,
           });
@@ -110,9 +94,9 @@ function Dashboard() {
           setRecentActivity(sortedInstances);
         };
 
-        if (cachedJobs && cachedInstances) {
+        if (cachedStats && cachedInstances) {
           computeStats(
-            JSON.parse(cachedJobs),
+            JSON.parse(cachedStats),
             JSON.parse(cachedInstances),
             0,
             0,
@@ -120,13 +104,13 @@ function Dashboard() {
         }
 
         const [
-          jobsRes,
+          statsRes,
           instancesRes,
           usersRes,
           inTransfersRes,
           outTransfersRes,
         ] = await Promise.all([
-          axios.get(`${API_URL}/api/jobs`),
+          axios.get(`${API_URL}/api/jobs/stats`),
           axios.get(`${API_URL}/api/tests/instances`),
           axios.get(`${API_URL}/api/users`),
           axios.get(`${API_URL}/api/sample-transfers/incoming`, {
@@ -141,17 +125,17 @@ function Dashboard() {
           }),
         ]);
 
-        computeStats(
-          jobsRes.data,
-          instancesRes.data,
-          inTransfersRes.data.length,
-          outTransfersRes.data.length,
-        );
-
-        sessionStorage.setItem(CACHE_KEYS.JOBS, JSON.stringify(jobsRes.data));
+        sessionStorage.setItem(CACHE_KEYS.STATS, JSON.stringify(statsRes.data));
         sessionStorage.setItem(
           CACHE_KEYS.INSTANCES,
           JSON.stringify(instancesRes.data),
+        );
+
+        computeStats(
+          statsRes.data,
+          instancesRes.data,
+          inTransfersRes.data.length,
+          outTransfersRes.data.length,
         );
         sessionStorage.setItem(CACHE_KEYS.USERS, JSON.stringify(usersRes.data));
       } catch (err) {
@@ -765,6 +749,9 @@ function Assistants() {
 function Dispatcher() {
   const [assistants, setAssistants] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [hasMoreJobs, setHasMoreJobs] = useState(false);
+  const [jobsCursor, setJobsCursor] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const { user } = useContext(AuthContext);
 
   const [expandedJobId, setExpandedJobId] = useState(null);
@@ -794,25 +781,48 @@ function Dispatcher() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferConfirmData, setTransferConfirmData] = useState(null); // { type: 'send' | 'receive', id: string, title, message }
 
-  const fetchJobs = () => {
+  const filterActiveHeadJobs = (dataArray) => {
     const dept = user?.department ? user.department.toLowerCase() : "";
-    fetchWithCache(`${API_URL}/api/jobs`, CACHE_KEYS.JOBS, (data) =>
-      setJobs(
-        data.filter((j) => {
-          const dKey = dept === "chemical" ? "chemical" : dept;
-          const dist = j.distribution[dKey];
-          const headId = dist?.assignedHead?._id || dist?.assignedHead;
-          return (
-            ["PENDING", "PENDING_REVIEW", "REVIEW_APPROVED"].includes(
-              dist?.status,
-            ) &&
-            (!headId || headId === user._id)
-          );
-        }),
-      ),
-    )
+    return dataArray.filter((j) => {
+      const dKey = dept === "chemical" ? "chemical" : dept;
+      const dist = j.distribution ? j.distribution[dKey] : null;
+      const headId = dist?.assignedHead?._id || dist?.assignedHead;
+      return (
+        ["PENDING", "PENDING_REVIEW", "REVIEW_APPROVED"].includes(dist?.status) &&
+        (!headId || headId === user._id)
+      );
+    });
+  };
+
+  const handleJobsData = (data) => {
+    if (data && data.jobs) {
+      setJobs(filterActiveHeadJobs(data.jobs));
+      setHasMoreJobs(data.hasMore);
+      setJobsCursor(data.nextCursor);
+    } else if (Array.isArray(data)) {
+      setJobs(filterActiveHeadJobs(data));
+    }
+  };
+
+  const fetchJobs = () => {
+    fetchWithCache(`${API_URL}/api/jobs?activeForHead=true`, CACHE_KEYS.JOBS, handleJobsData)
       .catch(console.error)
       .finally(() => setDispatchLoading(false));
+  };
+
+  const loadMoreJobs = async () => {
+    if (!jobsCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/jobs?activeForHead=true&cursor=${jobsCursor}`);
+      setJobs(prev => [...prev, ...filterActiveHeadJobs(res.data.jobs || [])]);
+      setHasMoreJobs(res.data.hasMore);
+      setJobsCursor(res.data.nextCursor);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   useEffect(() => {
@@ -2250,10 +2260,11 @@ function Dispatcher() {
         </div>
       )}
 
-      {/* View Job Details Modal */}
       {detailsJob && (
         <JobDetailsModal job={detailsJob} onClose={() => setDetailsJob(null)} />
       )}
+
+      <InfiniteScroll hasMore={hasMoreJobs} isLoading={isLoadingMore} onLoadMore={loadMoreJobs} />
     </div>
   );
 }
@@ -2989,6 +3000,9 @@ export default function HeadDashboard() {
 function Audit() {
   const [instances, setInstances] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [hasMoreJobs, setHasMoreJobs] = useState(false);
+  const [jobsCursor, setJobsCursor] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const location = useLocation();
   const [auditLoading, setAuditLoading] = useState(
     () =>
@@ -3020,8 +3034,14 @@ function Audit() {
               i.status === "COMPLETED" && fullyCompletedJobIds.has(i.jobId),
           ),
         );
-        setJobs(allJobs);
+        setJobs(extractJobs(allJobs));
+        if (allJobs && allJobs.hasMore !== undefined) {
+          setHasMoreJobs(allJobs.hasMore);
+          setJobsCursor(allJobs.nextCursor);
+        }
       };
+
+      const extractJobs = (data) => (data && data.jobs ? data.jobs : data);
 
       if (cachedInst && cachedJobs) {
         processData(JSON.parse(cachedInst), JSON.parse(cachedJobs));
@@ -3041,6 +3061,27 @@ function Audit() {
       console.error(err);
     } finally {
       setAuditLoading(false);
+    }
+  };
+
+  const loadMoreJobs = async () => {
+    if (!jobsCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/jobs?cursor=${jobsCursor}`);
+      const processDataMore = (allJobs) => {
+        const extractJobs = (data) => (data && data.jobs ? data.jobs : data);
+        setJobs(prev => [...prev, ...extractJobs(allJobs)]);
+        if (allJobs && allJobs.hasMore !== undefined) {
+          setHasMoreJobs(allJobs.hasMore);
+          setJobsCursor(allJobs.nextCursor);
+        }
+      };
+      processDataMore(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -3071,6 +3112,9 @@ function Audit() {
           <JobLogTable
             jobs={jobs}
             title="Lifecycle Tracker"
+            hasMoreData={hasMoreJobs}
+            isLoadingMoreData={isLoadingMore}
+            onLoadMoreData={loadMoreJobs}
             defaultExpandedId={location.state?.expandJobId}
           />
         )}

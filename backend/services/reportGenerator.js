@@ -344,7 +344,7 @@ const buildResultsTable = (rowsData, hasSpec, startIdx, repeatHeader = null) => 
         createCell(`${counter}.`, { alignment: AlignmentType.CENTER }),
         createCell(r.data.name),
         createCell(r.data.unit || '--', { alignment: AlignmentType.CENTER }),
-        createCell(r.data.value || '--', { bold: true, alignment: AlignmentType.CENTER }),
+        createCell(r.data.value || '--', { bold: false, alignment: AlignmentType.CENTER }),
         createCell(r.data.testMethod || '--', { alignment: AlignmentType.CENTER })
       ];
       if (hasSpec) dataCells.push(createCell(r.data.specification || '--', { alignment: AlignmentType.CENTER }));

@@ -13,6 +13,7 @@ import {
 import JobTimeline from "./JobTimeline";
 import GlobalJobHistory from "./GlobalJobHistory";
 import ReportModal from "./ReportModal";
+import InfiniteScroll from "./InfiniteScroll";
 
 export default function JobLogTable({
   jobs,
@@ -22,10 +23,19 @@ export default function JobLogTable({
   onEditJob,
   editingJobId,
   defaultExpandedId,
+  hasMoreData,
+  onLoadMoreData,
+  isLoadingMoreData,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [expandedJobId, setExpandedJobId] = useState(defaultExpandedId || null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter]);
 
   React.useEffect(() => {
     if (defaultExpandedId) {
@@ -56,7 +66,7 @@ export default function JobLogTable({
   // Group jobs: only show ROOT jobs in the main table. Child jobs will be fetched/passed inside JobTimeline.
   const rootJobs = jobs.filter((j) => !j.isRetest);
 
-  const filteredJobs = rootJobs.filter((j) => {
+  const filteredJobsAll = rootJobs.filter((j) => {
     const term = searchTerm.toLowerCase();
     const matchSearch =
       j.jobCode.toLowerCase().includes(term) ||
@@ -65,6 +75,19 @@ export default function JobLogTable({
     const matchStatus = statusFilter === "ALL" || jobStatus === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const totalPages = Math.ceil(filteredJobsAll.length / PAGE_SIZE);
+  const visibleJobs = filteredJobsAll.slice(0, page * PAGE_SIZE);
+
+  const handleLoadMore = () => {
+    if (page < totalPages) {
+      setPage(p => p + 1);
+    } else if (hasMoreData && onLoadMoreData && !isLoadingMoreData) {
+      onLoadMoreData();
+      // Increase page immediately so the newly loaded data shows up
+      setPage(p => p + 1);
+    }
+  };
 
   const toggleExpand = (id) => {
     setExpandedJobId(expandedJobId === id ? null : id);
@@ -229,7 +252,7 @@ export default function JobLogTable({
             </tr>
           </thead>
           <tbody>
-            {filteredJobs.length === 0 ? (
+            {visibleJobs.length === 0 ? (
               <tr>
                 <td
                   colSpan={showActions ? 6 : 5}
@@ -239,7 +262,7 @@ export default function JobLogTable({
                 </td>
               </tr>
             ) : (
-              filteredJobs.map((job) => (
+              visibleJobs.map((job) => (
                 <React.Fragment key={job._id}>
                   <tr
                     id={`job-row-${job._id}`}
@@ -488,7 +511,7 @@ export default function JobLogTable({
           backgroundColor: "var(--color-surface-hover)",
         }}
       >
-        {filteredJobs.length === 0 ? (
+        {visibleJobs.length === 0 ? (
           <div
             style={{
               textAlign: "center",
@@ -499,7 +522,7 @@ export default function JobLogTable({
             No jobs match your filters.
           </div>
         ) : (
-          filteredJobs.map((job) => (
+          visibleJobs.map((job) => (
             <div
               key={`mobile-job-${job._id}`}
               style={{
@@ -725,6 +748,12 @@ export default function JobLogTable({
           ))
         )}
       </div>
+
+      <InfiniteScroll 
+        hasMore={page < totalPages || hasMoreData} 
+        isLoading={isLoadingMoreData || false} 
+        onLoadMore={handleLoadMore} 
+      />
 
       {historyJob && (
         <GlobalJobHistory

@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const ParameterGroup = require('../models/ParameterGroup');
 const { protect } = require('../middlewares/authMiddleware');
+const { cacheMiddleware } = require('../utils/serverCache');
 
 // GET /api/parameter-groups/all — fetch everything in one shot for local filtering
-router.get('/all', protect, async (req, res) => {
+router.get('/all', protect, cacheMiddleware('groups'), async (req, res) => {
   try {
     const docs = await ParameterGroup.find()
       .populate('parameters.parameterId', 'name type unit')
@@ -49,7 +50,7 @@ router.get('/all', protect, async (req, res) => {
 });
 
 // GET /api/parameter-groups/groups — distinct group names
-router.get('/groups', protect, async (req, res) => {
+router.get('/groups', protect, cacheMiddleware('groups'), async (req, res) => {
   try {
     const groups = await ParameterGroup.distinct('group');
     res.json(groups.sort());
@@ -59,7 +60,7 @@ router.get('/groups', protect, async (req, res) => {
 });
 
 // GET /api/parameter-groups/subgroups?groups=GroupA,GroupB
-router.get('/subgroups', protect, async (req, res) => {
+router.get('/subgroups', protect, cacheMiddleware('groups'), async (req, res) => {
   try {
     const groupNames = req.query.groups ? req.query.groups.split(',').map(g => g.trim()) : [];
     if (groupNames.length === 0) return res.json([]);
@@ -81,7 +82,7 @@ router.get('/subgroups', protect, async (req, res) => {
 });
 
 // GET /api/parameter-groups/details?groups=...&subGroups=...
-router.get('/details', protect, async (req, res) => {
+router.get('/details', protect, cacheMiddleware('groups'), async (req, res) => {
   try {
     const groupNames = req.query.groups ? req.query.groups.split(',').map(g => g.trim()) : [];
     const subGroupNames = req.query.subGroups ? req.query.subGroups.split(',').map(s => s.trim()) : [];

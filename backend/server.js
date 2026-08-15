@@ -6,7 +6,9 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
+const helmet = require('helmet');
 
+const { authLimiter, apiLimiter } = require('./middlewares/rateLimiter');
 // Load env variables — .env.local overrides .env for local development
 const envLocalPath = path.join(__dirname, '.env.local');
 if (fs.existsSync(envLocalPath)) {
@@ -23,10 +25,14 @@ const requestLogger = require('./middlewares/requestLogger');
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigin = process.env.FRONTEND_URL || '*';
+const allowedOrigin = process.env.FRONTEND_URL;
+if (!allowedOrigin) {
+  console.warn('⚠️  WARNING: FRONTEND_URL is not set in environment variables. Falling back to "*" for CORS. Do not use this in production!');
+}
+const corsOrigin = allowedOrigin || '*';
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
   }
 });
@@ -44,8 +50,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Middleware
-app.use(cors({ origin: allowedOrigin }));
+// ── Security Middlewares ──
+app.use(helmet());
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -53,20 +60,20 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(requestLogger);
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/tests', require('./routes/testRoutes'));
-app.use('/api/jobs', require('./routes/jobRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/parameters', require('./routes/parameterRoutes'));
-app.use('/api/parameter-groups', require('./routes/parameterGroupRoutes'));
-app.use('/api/sample-transfers', require('./routes/sampleTransferRoutes'));
-app.use('/api/bug-reports', require('./routes/bugReportRoutes'));
-app.use('/api/data-settings', require('./routes/dataSettingsRoutes'));
-app.use('/api/test-methods', require('./routes/testMethodRoutes'));
-app.use('/api/units', require('./routes/unitRoutes'));
-app.use('/api/export', require('./routes/exportRoutes'));
-app.use('/api/logs', require('./routes/logRoutes'));
+app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
+app.use('/api/users', apiLimiter, require('./routes/userRoutes'));
+app.use('/api/tests', apiLimiter, require('./routes/testRoutes'));
+app.use('/api/jobs', apiLimiter, require('./routes/jobRoutes'));
+app.use('/api/notifications', apiLimiter, require('./routes/notificationRoutes'));
+app.use('/api/parameters', apiLimiter, require('./routes/parameterRoutes'));
+app.use('/api/parameter-groups', apiLimiter, require('./routes/parameterGroupRoutes'));
+app.use('/api/sample-transfers', apiLimiter, require('./routes/sampleTransferRoutes'));
+app.use('/api/bug-reports', apiLimiter, require('./routes/bugReportRoutes'));
+app.use('/api/data-settings', apiLimiter, require('./routes/dataSettingsRoutes'));
+app.use('/api/test-methods', apiLimiter, require('./routes/testMethodRoutes'));
+app.use('/api/units', apiLimiter, require('./routes/unitRoutes'));
+app.use('/api/export', apiLimiter, require('./routes/exportRoutes'));
+app.use('/api/logs', apiLimiter, require('./routes/logRoutes'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)

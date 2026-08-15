@@ -14,7 +14,7 @@ import BugReportPage from './pages/BugReportPage';
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
 
-  if (loading) return <div className="flex-center" style={{height:'100vh'}}>Loading...</div>;
+  if (loading) return <div className="flex-center" style={{ height: '100vh' }}>Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
 
@@ -30,17 +30,17 @@ function App() {
     <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             !user ? <Navigate to="/login" replace /> :
-            user.role === 'ADMIN' ? <Navigate to="/admin" replace /> :
-            user.role === 'ADMIN_OFFICER' ? <Navigate to="/admin-officer" replace /> :
-            user.role === 'HEAD' ? <Navigate to="/head" replace /> :
-            <Navigate to="/assistant" replace />
-          } 
+              user.role === 'ADMIN' ? <Navigate to="/admin" replace /> :
+                user.role === 'ADMIN_OFFICER' ? <Navigate to="/admin-officer" replace /> :
+                  user.role === 'HEAD' ? <Navigate to="/head" replace /> :
+                    <Navigate to="/assistant" replace />
+          }
         />
-        
+
         {/* Admin Routes */}
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRoles={['ADMIN']}>

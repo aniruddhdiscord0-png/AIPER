@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const TestMethod = require('../models/TestMethod');
 const { protect } = require('../middlewares/authMiddleware');
+const { cacheMiddleware, invalidateByPrefix } = require('../utils/serverCache');
 
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, cacheMiddleware('methods'), async (req, res) => {
   try {
     const methods = await TestMethod.find().sort({ text: 1 });
     res.json(methods);
@@ -21,6 +22,7 @@ router.post('/', protect, async (req, res) => {
     if (existing) return res.status(400).json({ message: 'Test method already exists' });
 
     const method = await TestMethod.create({ text: text.trim(), createdBy: req.user._id });
+    invalidateByPrefix('methods');
     res.status(201).json(method);
   } catch (err) {
     res.status(500).json({ message: 'Error creating test method', error: err.message });
@@ -50,6 +52,7 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const deleted = await TestMethod.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: 'Not found' });
+    invalidateByPrefix('methods');
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Error deleting test method', error: err.message });

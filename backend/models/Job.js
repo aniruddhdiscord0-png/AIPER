@@ -134,4 +134,13 @@ const jobSchema = new mongoose.Schema({
   customCreationDate: { type: Date, default: null },
 }, { timestamps: true });
 
+// ── Performance indexes ─────────────────────────────────────────────────────
+jobSchema.index({ 'distribution.micro.status': 1 });
+jobSchema.index({ 'distribution.chemical.status': 1 });
+jobSchema.index({ status: 1 });
+jobSchema.index({ createdAt: -1 });
+jobSchema.index({ 'sample.nabl_type': 1 });
+jobSchema.index({ sampleSerial: -1 });
+jobSchema.index({ isRetest: 1, parentJobId: 1 });
+
 module.exports = mongoose.model('Job', jobSchema);

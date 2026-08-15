@@ -462,6 +462,9 @@ function UsersPage() {
 function Audit() {
   const [instances, setInstances] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [hasMoreJobs, setHasMoreJobs] = useState(false);
+  const [jobsCursor, setJobsCursor] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const location = useLocation();
 
   const [auditLoading, setAuditLoading] = useState(
@@ -473,7 +476,10 @@ function Audit() {
       const cachedInst = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
       const cachedJobs = sessionStorage.getItem(CACHE_KEYS.JOBS);
       if (cachedInst) setInstances(JSON.parse(cachedInst).filter(i => i.status === 'COMPLETED'));
-      if (cachedJobs) setJobs(JSON.parse(cachedJobs));
+      if (cachedJobs) {
+        const parsed = JSON.parse(cachedJobs);
+        setJobs(parsed.jobs ? parsed.jobs : parsed);
+      }
 
       const [resInst, resJobs] = await Promise.all([
         axios.get(`${API_URL}/api/tests/instances`),
@@ -482,11 +488,32 @@ function Audit() {
       sessionStorage.setItem(CACHE_KEYS.INSTANCES, JSON.stringify(resInst.data));
       sessionStorage.setItem(CACHE_KEYS.JOBS, JSON.stringify(resJobs.data));
       setInstances(resInst.data.filter(i => i.status === 'COMPLETED'));
-      setJobs(resJobs.data);
+      if (resJobs.data && resJobs.data.jobs) {
+        setJobs(resJobs.data.jobs);
+        setHasMoreJobs(resJobs.data.hasMore || false);
+        setJobsCursor(resJobs.data.nextCursor || null);
+      } else {
+        setJobs(resJobs.data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setAuditLoading(false);
+    }
+  };
+
+  const loadMoreJobs = async () => {
+    if (!jobsCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/jobs?includeCancelled=true&cursor=${jobsCursor}`);
+      setJobs((prev) => [...prev, ...(res.data.jobs || [])]);
+      setHasMoreJobs(res.data.hasMore);
+      setJobsCursor(res.data.nextCursor);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -502,7 +529,14 @@ function Audit() {
         {auditLoading && jobs.length === 0 ? (
           <div className="card"><Spinner message="Loading logs..." /></div>
         ) : (
-          <JobLogTable jobs={jobs} title="Global Job Lifecycle Logs" defaultExpandedId={location.state?.expandJobId} />
+          <JobLogTable 
+            jobs={jobs} 
+            title="Global Job Lifecycle Logs" 
+            hasMoreData={hasMoreJobs}
+            isLoadingMoreData={isLoadingMore}
+            onLoadMoreData={loadMoreJobs}
+            defaultExpandedId={location.state?.expandJobId} 
+          />
         )}
       </div>
 
