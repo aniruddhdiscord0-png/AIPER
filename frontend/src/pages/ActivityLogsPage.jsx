@@ -6,9 +6,9 @@ import JobLogTable from "../components/JobLogTable";
 import Spinner from "../components/Spinner";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../utils/cache";
 import { cacheSet, cacheGet } from "../utils/cacheStorage";
-import { API_URL } from "../config";
+import API_URL from "../utils/api";
 import { formatJobCode } from "../utils/serialUtils";
-import { useSocket } from "../components/SocketProvider";
+import { useSocket } from "../context/SocketContext";
 
 export default function ActivityLogsPage({
   title = "Activity Logs",
