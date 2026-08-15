@@ -1,3 +1,4 @@
+import ActivityLogsPage from './ActivityLogsPage';
 import React, { useState, useEffect, useContext } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
@@ -2996,191 +2997,17 @@ export default function HeadDashboard() {
 }
 
 function Audit() {
-  const [instances, setInstances] = useState([]);
-  const [jobs, setJobs] = useState([]);
-  const [hasMoreJobs, setHasMoreJobs] = useState(false);
-  const [jobsCursor, setJobsCursor] = useState(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const location = useLocation();
-  const [auditLoading, setAuditLoading] = useState(
-    () =>
-      !isCached(CACHE_KEYS.INSTANCES) ||
-      !isCached(CACHE_KEYS.JOBS),
-  );
-
-  const fetchData = async () => {
-    try {
-      const cachedInst = await cacheGet(CACHE_KEYS.INSTANCES);
-      const cachedJobs = await cacheGet(CACHE_KEYS.JOBS);
-
-      const processData = (allInstances, allJobs) => {
-        const isJobFullyCompleted = (job) => {
-          const microOk =
-            !job.distribution?.micro?.required ||
-            job.distribution.micro.status === "COMPLETED";
-          const chemicalOk =
-            !job.distribution?.chemical?.required ||
-            job.distribution.chemical.status === "COMPLETED";
-          return microOk && chemicalOk;
-        };
-        const fullyCompletedJobIds = new Set(
-          allJobs.filter((j) => isJobFullyCompleted(j)).map((j) => j._id),
-        );
-        setInstances(
-          allInstances.filter(
-            (i) =>
-              i.status === "COMPLETED" && fullyCompletedJobIds.has(i.jobId),
-          ),
-        );
-        setJobs(extractJobs(allJobs));
-        if (allJobs && allJobs.hasMore !== undefined) {
-          setHasMoreJobs(allJobs.hasMore);
-          setJobsCursor(allJobs.nextCursor);
-        }
-      };
-
-      const extractJobs = (data) => (data && data.jobs ? data.jobs : data);
-
-      if (cachedInst && cachedJobs) {
-        processData(cachedInst, cachedJobs);
-      }
-
-      const [resInst, resJobs] = await Promise.all([
-        axios.get(`${API_URL}/api/tests/instances`),
-        axios.get(`${API_URL}/api/jobs`),
-      ]);
-      cacheSet(CACHE_KEYS.INSTANCES, resInst.data);
-      cacheSet(CACHE_KEYS.JOBS, resJobs.data);
-      processData(resInst.data, resJobs.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
-  const loadMoreJobs = async () => {
-    if (!jobsCursor || isLoadingMore) return;
-    setIsLoadingMore(true);
-    try {
-      const res = await axios.get(`${API_URL}/api/jobs?cursor=${jobsCursor}`);
-      const processDataMore = (allJobs) => {
-        const extractJobs = (data) => (data && data.jobs ? data.jobs : data);
-        setJobs(prev => [...prev, ...extractJobs(allJobs)]);
-        if (allJobs && allJobs.hasMore !== undefined) {
-          setHasMoreJobs(allJobs.hasMore);
-          setJobsCursor(allJobs.nextCursor);
-        }
-      };
-      processDataMore(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
+  const { user } = useAuth();
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      <div>
-        <h1
-          style={{
-            marginBottom: "1.5rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <FileText size={28} style={{ color: "var(--color-primary)" }} />{" "}
-          Department Job Logs
-        </h1>
-
-        {auditLoading && jobs.length === 0 ? (
-          <div className="card">
-            <Spinner message="Loading logs..." />
-          </div>
-        ) : (
-          <JobLogTable
-            jobs={jobs}
-            title="Lifecycle Tracker"
-            hasMoreData={hasMoreJobs}
-            isLoadingMoreData={isLoadingMore}
-            onLoadMoreData={loadMoreJobs}
-            defaultExpandedId={location.state?.expandJobId}
-          />
-        )}
-      </div>
-
-      <div>
-        <h2
-          style={{
-            marginBottom: "1.5rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          Completed Activity
-        </h2>
-        <div
-          className="card glass-panel"
-          style={{ padding: 0, overflow: "hidden" }}
-        >
-          <div className="table-scroll">
-            <table>
-              <thead style={{ backgroundColor: "var(--color-surface-hover)" }}>
-                <tr>
-                  <th>Test Code</th>
-                  <th>Client Name</th>
-
-                  <th>Analyst</th>
-                  <th>Date Completed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLoading && instances.length === 0 ? (
-                  <tr>
-                    <td colSpan="5">
-                      <Spinner message="Loading completed tests..." />
-                    </td>
-                  </tr>
-                ) : instances.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      style={{
-                        textAlign: "center",
-                        padding: "2rem",
-                        color: "var(--color-text-muted)",
-                      }}
-                    >
-                      No completed tests in your department yet.
-                    </td>
-                  </tr>
-                ) : (
-                  instances.map((inst) => (
-                    <tr key={inst._id}>
-                      <td style={{ fontFamily: "monospace" }}>
-                        {formatJobCode(inst.testCode)}
-                      </td>
-                      <td style={{ fontWeight: 500 }}>{inst.clientName}</td>
-
-                      <td>{inst.assignedTo?.name}</td>
-                      <td>
-                        {new Date(inst.completedAt).toLocaleDateString("en-IN")}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ActivityLogsPage
+      title="Department Job Logs"
+      fetchUrl={`${API_URL}/api/jobs`}
+      showCompletedActivity={true}
+      completedActivityScope="department"
+      enableSocketUpdates={false}
+      defaultExpandedId={location.state?.expandJobId}
+      user={user}
+    />
   );
 }

@@ -81,6 +81,26 @@ router.get('/', protect, async (req, res) => {
       }
     }
 
+    // ── Search parameter ──
+    const searchTerm = req.query.search;
+    if (searchTerm) {
+      const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'i');
+      // Search by job code, client name, or sample description
+      const searchConditions = [
+        { jobCode: regex },
+        { clientName: regex },
+        { 'sample.sampleDescription': regex },
+      ];
+      // Preserve any existing $or (e.g., from HEAD role filtering)
+      if (query.$or) {
+        query.$and = [...(query.$and || []), { $or: query.$or }, { $or: searchConditions }];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
+    }
+
     // ── Pagination parameters ──
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);  // max 100 per page
     const cursor = req.query.cursor;  // MongoDB _id of the last item from previous page

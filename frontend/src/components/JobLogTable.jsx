@@ -26,6 +26,7 @@ export default function JobLogTable({
   hasMoreData,
   onLoadMoreData,
   isLoadingMoreData,
+  onServerSearch,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -36,6 +37,15 @@ export default function JobLogTable({
   React.useEffect(() => {
     setPage(1);
   }, [searchTerm, statusFilter]);
+
+  // Debounced server search
+  React.useEffect(() => {
+    if (!onServerSearch) return;
+    const timeoutId = setTimeout(() => {
+      onServerSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, onServerSearch]);
 
   React.useEffect(() => {
     if (defaultExpandedId) {

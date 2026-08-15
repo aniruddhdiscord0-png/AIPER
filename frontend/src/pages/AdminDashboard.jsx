@@ -1,3 +1,4 @@
+import ActivityLogsPage from './ActivityLogsPage';
 import React, { useState, useEffect, useContext } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -461,122 +462,16 @@ function UsersPage() {
 }
 
 function Audit() {
-  const [instances, setInstances] = useState([]);
-  const [jobs, setJobs] = useState([]);
-  const [hasMoreJobs, setHasMoreJobs] = useState(false);
-  const [jobsCursor, setJobsCursor] = useState(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const location = useLocation();
-
-  const [auditLoading, setAuditLoading] = useState(
-    () => !isCached(CACHE_KEYS.INSTANCES) || !isCached(CACHE_KEYS.JOBS)
-  );
-
-  const fetchData = async () => {
-    try {
-      const cachedInst = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
-      const cachedJobs = sessionStorage.getItem(CACHE_KEYS.JOBS);
-      if (cachedInst) setInstances(JSON.parse(cachedInst).filter(i => i.status === 'COMPLETED'));
-      if (cachedJobs) {
-        const parsed = JSON.parse(cachedJobs);
-        setJobs(parsed.jobs ? parsed.jobs : parsed);
-      }
-
-      const [resInst, resJobs] = await Promise.all([
-        axios.get(`${API_URL}/api/tests/instances`),
-        axios.get(`${API_URL}/api/jobs?includeCancelled=true`)
-      ]);
-      cacheSet(CACHE_KEYS.INSTANCES, resInst.data);
-      cacheSet(CACHE_KEYS.JOBS, resJobs.data);
-      setInstances(resInst.data.filter(i => i.status === 'COMPLETED'));
-      if (resJobs.data && resJobs.data.jobs) {
-        setJobs(resJobs.data.jobs);
-        setHasMoreJobs(resJobs.data.hasMore || false);
-        setJobsCursor(resJobs.data.nextCursor || null);
-      } else {
-        setJobs(resJobs.data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
-  const loadMoreJobs = async () => {
-    if (!jobsCursor || isLoadingMore) return;
-    setIsLoadingMore(true);
-    try {
-      const res = await axios.get(`${API_URL}/api/jobs?includeCancelled=true&cursor=${jobsCursor}`);
-      setJobs((prev) => [...prev, ...(res.data.jobs || [])]);
-      setHasMoreJobs(res.data.hasMore);
-      setJobsCursor(res.data.nextCursor);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, []);
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h1 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={28} style={{ color: 'var(--color-primary)' }} /> Activity Logs
-        </h1>
-
-        {auditLoading && jobs.length === 0 ? (
-          <div className="card"><Spinner message="Loading logs..." /></div>
-        ) : (
-          <JobLogTable 
-            jobs={jobs} 
-            title="Global Job Lifecycle Logs" 
-            hasMoreData={hasMoreJobs}
-            isLoadingMoreData={isLoadingMore}
-            onLoadMoreData={loadMoreJobs}
-            defaultExpandedId={location.state?.expandJobId} 
-          />
-        )}
-      </div>
-
-      <div>
-        <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          Completed Activity
-        </h2>
-        <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-          <table>
-            <thead style={{ backgroundColor: 'var(--color-surface-hover)' }}>
-              <tr>
-                <th>Test Code</th>
-                <th>Client Name</th>
-
-                <th>Analyst</th>
-                <th>Date Completed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {auditLoading && instances.length === 0 ? (
-                <tr><td colSpan="5"><Spinner message="Loading completed tests..." /></td></tr>
-              ) : instances.length === 0 ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>No completed tests yet.</td></tr>
-              ) : (
-                instances.map(inst => (
-                  <tr key={inst._id}>
-                    <td style={{ fontFamily: 'monospace' }}>{formatJobCode(inst.testCode)}</td>
-                    <td style={{ fontWeight: 500 }}>{inst.clientName}</td>
-
-                    <td>{inst.assignedTo?.name}</td>
-                    <td>{new Date(inst.completedAt).toLocaleDateString('en-IN')}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <ActivityLogsPage
+      title="Activity Logs"
+      fetchUrl={`${API_URL}/api/jobs?includeCancelled=true`}
+      showCompletedActivity={true}
+      completedActivityScope="all"
+      enableSocketUpdates={false}
+      defaultExpandedId={location.state?.expandJobId}
+    />
   );
 }
 

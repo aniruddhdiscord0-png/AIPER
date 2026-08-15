@@ -1,3 +1,4 @@
+import ActivityLogsPage from './ActivityLogsPage';
 import React, { useState, useEffect, useContext } from "react";
 import {
   Routes,
@@ -3558,118 +3559,15 @@ function Jobs() {
 }
 
 function Audit() {
-  const [jobs, setJobs] = useState([]);
-  const [hasMoreJobs, setHasMoreJobs] = useState(false);
-  const [jobsCursor, setJobsCursor] = useState(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [auditLoading, setAuditLoading] = useState(
-    () => !isCached(CACHE_KEYS.JOBS),
-  );
   const navigate = useNavigate();
-  const socket = useSocket();
-
-  const fetchData = async () => {
-    try {
-      await fetchWithCache(`${API_URL}/api/jobs`, CACHE_KEYS.JOBS, (data) => {
-        if (data && data.jobs) {
-          setJobs(data.jobs);
-          setHasMoreJobs(data.hasMore || false);
-          setJobsCursor(data.nextCursor || null);
-        } else if (Array.isArray(data)) {
-          setJobs(data);
-        } else {
-          setJobs([]);
-        }
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
-  const loadMoreJobs = async () => {
-    if (!jobsCursor || isLoadingMore) return;
-    setIsLoadingMore(true);
-    try {
-      const res = await axios.get(`${API_URL}/api/jobs?cursor=${jobsCursor}`);
-      setJobs((prev) => [...prev, ...(res.data.jobs || [])]);
-      setHasMoreJobs(res.data.hasMore);
-      setJobsCursor(res.data.nextCursor);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!socket) return;
-    const triggerUpdate = () => {
-      invalidateCache(CACHE_KEYS.JOBS);
-      fetchData();
-    };
-
-    socket.on("JOB_CREATED", triggerUpdate);
-    socket.on("JOB_RETEST_INITIATED", triggerUpdate);
-    socket.on("TRANSFER_INITIATED", triggerUpdate);
-    socket.on("TRANSFER_RECEIVED", triggerUpdate);
-    socket.on("TEST_SUBMITTED", triggerUpdate);
-    socket.on("TEST_REVIEWED", triggerUpdate);
-    socket.on("JOB_UPDATED", triggerUpdate);
-    socket.on("JOB_RETURNED", triggerUpdate);
-    socket.on("JOB_DELETED", triggerUpdate);
-
-    return () => {
-      socket.off("JOB_CREATED", triggerUpdate);
-      socket.off("JOB_RETEST_INITIATED", triggerUpdate);
-      socket.off("TRANSFER_INITIATED", triggerUpdate);
-      socket.off("TRANSFER_RECEIVED", triggerUpdate);
-      socket.off("TEST_SUBMITTED", triggerUpdate);
-      socket.off("TEST_REVIEWED", triggerUpdate);
-      socket.off("JOB_UPDATED", triggerUpdate);
-      socket.off("JOB_RETURNED", triggerUpdate);
-      socket.off("JOB_DELETED", triggerUpdate);
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      <div>
-        <h1
-          style={{
-            marginBottom: "1.5rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <FileText size={28} style={{ color: "var(--color-primary)" }} />{" "}
-          Global Job Logs & Reports
-        </h1>
-
-        {auditLoading && jobs.length === 0 ? (
-          <div className="card">
-            <Spinner message="Loading logs..." />
-          </div>
-        ) : (
-          <JobLogTable
-            jobs={jobs}
-            title="Lifecycle Tracker"
-            hasMoreData={hasMoreJobs}
-            isLoadingMoreData={isLoadingMore}
-            onLoadMoreData={loadMoreJobs}
-            onReopen={(job) =>
-              navigate("/admin-officer/jobs", { state: { reopenJob: job } })
-            }
-          />
-        )}
-      </div>
-    </div>
+    <ActivityLogsPage
+      title="Global Job Logs & Reports"
+      fetchUrl={`${API_URL}/api/jobs`}
+      showCompletedActivity={false}
+      enableSocketUpdates={true}
+      onReopen={(job) => navigate("/admin-officer/jobs", { state: { reopenJob: job } })}
+    />
   );
 }
 
