@@ -41,7 +41,18 @@ export async function fetchWithCache(url, cacheKey, setter, headers = {}, { cach
       try {
         sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
       } catch (e) {
-        // sessionStorage can throw if storage quota is exceeded; fail silently
+        // QuotaExceededError — remove this key AND try to free space
+        console.warn(`[Cache] Write failed for key "${cacheKey}", clearing stale data.`, e.name);
+        sessionStorage.removeItem(cacheKey);
+        // Attempt to clear the largest volatile keys to free space
+        try {
+          ['aiper_jobs', 'aiper_instances', 'aiper_transfers_in', 'aiper_transfers_out'].forEach(k => sessionStorage.removeItem(k));
+          // Retry the write once
+          sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
+        } catch (retryErr) {
+          // Still failed — give up gracefully. Next load will be a fresh fetch.
+          console.warn(`[Cache] Retry also failed for "${cacheKey}". Operating without cache.`);
+        }
       }
     }
   }
