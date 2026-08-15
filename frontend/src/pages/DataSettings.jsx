@@ -15,15 +15,15 @@ import {
   Save,
 } from "lucide-react";
 import Spinner from "../components/Spinner";
-import { fetchWithCache, invalidateCache, CACHE_KEYS } from "../utils/cache";
+import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../utils/cache";
 import InfiniteScroll from "../components/InfiniteScroll";
 
 export default function DataSettings() {
   const { user } = useContext(AuthContext);
   const [data, setData] = useState([]);
   const [globalParameters, setGlobalParameters] = useState([]);
-  const [loading, setLoading] = useState(() => !sessionStorage.getItem(CACHE_KEYS.GROUPS));
-  const [paramsLoading, setParamsLoading] = useState(() => !sessionStorage.getItem(CACHE_KEYS.GLOBAL_PARAMS));
+  const [loading, setLoading] = useState(() => !isCached(CACHE_KEYS.GROUPS));
+  const [paramsLoading, setParamsLoading] = useState(() => !isCached(CACHE_KEYS.GLOBAL_PARAMS));
   const [error, setError] = useState("");
 
   // Sample Serial State
@@ -88,11 +88,11 @@ export default function DataSettings() {
 
   const fetchData = async () => {
     // Only set page loading to true if we have NO cached groups data
-    if (!sessionStorage.getItem(CACHE_KEYS.GROUPS)) {
+    if (!isCached(CACHE_KEYS.GROUPS)) {
       setLoading(true);
     }
     // Only show params loading if we have NO cached params
-    if (!sessionStorage.getItem(CACHE_KEYS.GLOBAL_PARAMS)) {
+    if (!isCached(CACHE_KEYS.GLOBAL_PARAMS)) {
       setParamsLoading(true);
     }
 

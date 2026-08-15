@@ -29,7 +29,8 @@ import JobLogTable from "../components/JobLogTable";
 import CascadingParameterSelector from "../components/CascadingParameterSelector";
 import DataSettings from "./DataSettings";
 import { AuthContext } from "../context/AuthContext";
-import { fetchWithCache, invalidateCache, CACHE_KEYS } from "../utils/cache";
+import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../utils/cache";
+import { cacheGet, cacheSet } from "../utils/cacheStorage";
 import Spinner from "../components/Spinner";
 import InfiniteScroll from "../components/InfiniteScroll";
 import { useSocket } from "../context/SocketContext";
@@ -52,8 +53,8 @@ function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [statsLoading, setStatsLoading] = useState(
     () =>
-      !sessionStorage.getItem(CACHE_KEYS.JOBS) ||
-      !sessionStorage.getItem(CACHE_KEYS.INSTANCES),
+      !isCached(CACHE_KEYS.JOBS) ||
+      !isCached(CACHE_KEYS.INSTANCES),
   );
 
   useEffect(() => {
@@ -62,9 +63,9 @@ function Dashboard() {
         let statsData, instancesData, usersData;
 
         // Use cache for initial render, then fetch fresh data in background
-        const cachedStats = sessionStorage.getItem(CACHE_KEYS.STATS);
-        const cachedInstances = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
-        const cachedUsers = sessionStorage.getItem(CACHE_KEYS.USERS);
+        const cachedStats = await cacheGet(CACHE_KEYS.STATS);
+        const cachedInstances = await cacheGet(CACHE_KEYS.INSTANCES);
+        const cachedUsers = await cacheGet(CACHE_KEYS.USERS);
 
         const computeStats = (statsObj, instances, users) => {
           if (!statsObj) statsObj = { ongoingJobs: 0, completedJobs: 0 };
@@ -91,9 +92,9 @@ function Dashboard() {
         // Instant render from cache
         if (cachedStats && cachedInstances && cachedUsers) {
           computeStats(
-            JSON.parse(cachedStats),
-            JSON.parse(cachedInstances),
-            JSON.parse(cachedUsers),
+            cachedStats,
+            cachedInstances,
+            cachedUsers,
           );
         }
 
@@ -103,12 +104,9 @@ function Dashboard() {
           axios.get(`${API_URL}/api/tests/instances`),
           axios.get(`${API_URL}/api/users`),
         ]);
-        sessionStorage.setItem(CACHE_KEYS.STATS, JSON.stringify(statsRes.data));
-        sessionStorage.setItem(
-          CACHE_KEYS.INSTANCES,
-          JSON.stringify(instancesRes.data),
-        );
-        sessionStorage.setItem(CACHE_KEYS.USERS, JSON.stringify(usersRes.data));
+        cacheSet(CACHE_KEYS.STATS, statsRes.data);
+        cacheSet(CACHE_KEYS.INSTANCES, instancesRes.data);
+        cacheSet(CACHE_KEYS.USERS, usersRes.data);
         computeStats(statsRes.data, instancesRes.data, usersRes.data);
       } catch (err) {
         console.error("Error fetching dashboard stats:", err);
@@ -507,7 +505,7 @@ function UsersPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [usersLoading, setUsersLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.USERS),
+    () => !isCached(CACHE_KEYS.USERS),
   );
 
   const fetchUsers = async () => {
@@ -3565,7 +3563,7 @@ function Audit() {
   const [jobsCursor, setJobsCursor] = useState(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [auditLoading, setAuditLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.JOBS),
+    () => !isCached(CACHE_KEYS.JOBS),
   );
   const navigate = useNavigate();
   const socket = useSocket();

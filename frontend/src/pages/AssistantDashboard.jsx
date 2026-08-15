@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 import axios from 'axios';
 import { Play, Check, Clock, AlertTriangle, RotateCcw, Calendar, X, Edit, Trash2, Plus } from 'lucide-react';
-import { fetchWithCache, invalidateCache, CACHE_KEYS } from '../utils/cache';
+import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from '../utils/cache';
 import Spinner from '../components/Spinner';
 import { useSocket } from '../context/SocketContext';
 import API_URL from '../utils/api';
@@ -17,7 +17,7 @@ export default function AssistantDashboard() {
   const [testMethods, setTestMethods] = useState([]);
   const [units, setUnits] = useState([]);
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(() => !sessionStorage.getItem(CACHE_KEYS.MY_TASKS));
+  const [loading, setLoading] = useState(() => !isCached(CACHE_KEYS.MY_TASKS));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errorModalData, setErrorModalData] = useState(null); // string for error message

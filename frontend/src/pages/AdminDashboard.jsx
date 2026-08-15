@@ -5,7 +5,8 @@ import { Trash2, Edit, FileText, Search, ChevronDown, ChevronRight, Activity, Us
 
 import JobLogTable from '../components/JobLogTable';
 import { AuthContext } from '../context/AuthContext';
-import { fetchWithCache, invalidateCache, CACHE_KEYS } from '../utils/cache';
+import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from '../utils/cache';
+import { cacheGet, cacheSet } from '../utils/cacheStorage';
 import Spinner from '../components/Spinner';
 import API_URL from '../utils/api';
 
@@ -23,7 +24,7 @@ function Dashboard() {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [statsLoading, setStatsLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.JOBS) || !sessionStorage.getItem(CACHE_KEYS.INSTANCES)
+    () => !isCached(CACHE_KEYS.JOBS) || !isCached(CACHE_KEYS.INSTANCES)
   );
 
   useEffect(() => {
@@ -32,9 +33,9 @@ function Dashboard() {
         let jobsData, instancesData, usersData;
 
         // Use cache for initial render
-        const cachedJobs = sessionStorage.getItem(CACHE_KEYS.JOBS);
-        const cachedInstances = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
-        const cachedUsers = sessionStorage.getItem(CACHE_KEYS.USERS);
+        const cachedJobs = await cacheGet(CACHE_KEYS.JOBS);
+        const cachedInstances = await cacheGet(CACHE_KEYS.INSTANCES);
+        const cachedUsers = await cacheGet(CACHE_KEYS.USERS);
 
         const computeStats = (jobs, instances, users) => {
           if (!Array.isArray(jobs)) jobs = [];
@@ -64,7 +65,7 @@ function Dashboard() {
         };
 
         if (cachedJobs && cachedInstances && cachedUsers) {
-          computeStats(JSON.parse(cachedJobs), JSON.parse(cachedInstances), JSON.parse(cachedUsers));
+          computeStats(cachedJobs, cachedInstances, cachedUsers);
         }
 
         const [jobsRes, instancesRes, usersRes] = await Promise.all([
@@ -75,9 +76,9 @@ function Dashboard() {
 
         computeStats(jobsRes.data, instancesRes.data, usersRes.data);
 
-        sessionStorage.setItem(CACHE_KEYS.JOBS, JSON.stringify(jobsRes.data));
-        sessionStorage.setItem(CACHE_KEYS.INSTANCES, JSON.stringify(instancesRes.data));
-        sessionStorage.setItem(CACHE_KEYS.USERS, JSON.stringify(usersRes.data));
+        cacheSet(CACHE_KEYS.JOBS, jobsRes.data);
+        cacheSet(CACHE_KEYS.INSTANCES, instancesRes.data);
+        cacheSet(CACHE_KEYS.USERS, usersRes.data);
 
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);
@@ -269,7 +270,7 @@ function UsersPage() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [usersLoading, setUsersLoading] = useState(() => !sessionStorage.getItem(CACHE_KEYS.USERS));
+  const [usersLoading, setUsersLoading] = useState(() => !isCached(CACHE_KEYS.USERS));
 
   const fetchUsers = async () => {
     try {
@@ -468,7 +469,7 @@ function Audit() {
   const location = useLocation();
 
   const [auditLoading, setAuditLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.INSTANCES) || !sessionStorage.getItem(CACHE_KEYS.JOBS)
+    () => !isCached(CACHE_KEYS.INSTANCES) || !isCached(CACHE_KEYS.JOBS)
   );
 
   const fetchData = async () => {
@@ -485,8 +486,8 @@ function Audit() {
         axios.get(`${API_URL}/api/tests/instances`),
         axios.get(`${API_URL}/api/jobs?includeCancelled=true`)
       ]);
-      sessionStorage.setItem(CACHE_KEYS.INSTANCES, JSON.stringify(resInst.data));
-      sessionStorage.setItem(CACHE_KEYS.JOBS, JSON.stringify(resJobs.data));
+      cacheSet(CACHE_KEYS.INSTANCES, resInst.data);
+      cacheSet(CACHE_KEYS.JOBS, resJobs.data);
       setInstances(resInst.data.filter(i => i.status === 'COMPLETED'));
       if (resJobs.data && resJobs.data.jobs) {
         setJobs(resJobs.data.jobs);

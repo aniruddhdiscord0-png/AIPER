@@ -26,7 +26,8 @@ import { Link, useLocation } from "react-router-dom";
 
 import JobLogTable from "../components/JobLogTable";
 import JobDetailsModal from "../components/JobDetailsModal";
-import { fetchWithCache, invalidateCache, CACHE_KEYS } from "../utils/cache";
+import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../utils/cache";
+import { cacheGet, cacheSet } from "../utils/cacheStorage";
 import Spinner from "../components/Spinner";
 import InfiniteScroll from "../components/InfiniteScroll";
 import { useSocket } from "../context/SocketContext";
@@ -50,16 +51,16 @@ function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [statsLoading, setStatsLoading] = useState(
     () =>
-      !sessionStorage.getItem(CACHE_KEYS.JOBS) ||
-      !sessionStorage.getItem(CACHE_KEYS.INSTANCES),
+      !isCached(CACHE_KEYS.JOBS) ||
+      !isCached(CACHE_KEYS.INSTANCES),
   );
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         // Use cache for initial render
-        const cachedStats = sessionStorage.getItem(CACHE_KEYS.STATS);
-        const cachedInstances = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
+        const cachedStats = await cacheGet(CACHE_KEYS.STATS);
+        const cachedInstances = await cacheGet(CACHE_KEYS.INSTANCES);
         // Note: sample-transfers aren't globally cached yet, so we'll just skip them in the 0ms render or use 0
 
         const computeStats = (statsObj, instances, pendingIn, pendingOut) => {
@@ -96,8 +97,8 @@ function Dashboard() {
 
         if (cachedStats && cachedInstances) {
           computeStats(
-            JSON.parse(cachedStats),
-            JSON.parse(cachedInstances),
+            cachedStats,
+            cachedInstances,
             0,
             0,
           );
@@ -125,11 +126,8 @@ function Dashboard() {
           }),
         ]);
 
-        sessionStorage.setItem(CACHE_KEYS.STATS, JSON.stringify(statsRes.data));
-        sessionStorage.setItem(
-          CACHE_KEYS.INSTANCES,
-          JSON.stringify(instancesRes.data),
-        );
+        cacheSet(CACHE_KEYS.STATS, statsRes.data);
+        cacheSet(CACHE_KEYS.INSTANCES, instancesRes.data);
 
         computeStats(
           statsRes.data,
@@ -137,7 +135,7 @@ function Dashboard() {
           inTransfersRes.data.length,
           outTransfersRes.data.length,
         );
-        sessionStorage.setItem(CACHE_KEYS.USERS, JSON.stringify(usersRes.data));
+        cacheSet(CACHE_KEYS.USERS, usersRes.data);
       } catch (err) {
         console.error("Error fetching dashboard stats:", err);
       } finally {
@@ -380,7 +378,7 @@ function Assistants() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [usersLoading, setUsersLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.USERS),
+    () => !isCached(CACHE_KEYS.USERS),
   );
 
   const fetchUsers = async () => {
@@ -760,7 +758,7 @@ function Dispatcher() {
   const [assignments, setAssignments] = useState({}); // `${jobId}-${paramId}` -> assistantId
   const [success, setSuccess] = useState("");
   const [dispatchLoading, setDispatchLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.JOBS),
+    () => !isCached(CACHE_KEYS.JOBS),
   );
   const [submittingJobId, setSubmittingJobId] = useState(null);
 
@@ -775,8 +773,8 @@ function Dispatcher() {
   const [outgoingJobs, setOutgoingJobs] = useState([]);
   const [transferListLoading, setTransferListLoading] = useState(
     () =>
-      !sessionStorage.getItem(CACHE_KEYS.TRANSFERS_IN) ||
-      !sessionStorage.getItem(CACHE_KEYS.TRANSFERS_OUT),
+      !isCached(CACHE_KEYS.TRANSFERS_IN) ||
+      !isCached(CACHE_KEYS.TRANSFERS_OUT),
   );
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferConfirmData, setTransferConfirmData] = useState(null); // { type: 'send' | 'receive', id: string, title, message }
@@ -2277,7 +2275,7 @@ function ReviewQueue() {
   const [showReassignForm, setShowReassignForm] = useState(null); // instance._id when reassign mode is active
   const [success, setSuccess] = useState("");
   const [reviewLoading, setReviewLoading] = useState(
-    () => !sessionStorage.getItem(CACHE_KEYS.INSTANCES),
+    () => !isCached(CACHE_KEYS.INSTANCES),
   );
   const [assistants, setAssistants] = useState([]);
   const [submittingReviewId, setSubmittingReviewId] = useState(null);
@@ -3006,14 +3004,14 @@ function Audit() {
   const location = useLocation();
   const [auditLoading, setAuditLoading] = useState(
     () =>
-      !sessionStorage.getItem(CACHE_KEYS.INSTANCES) ||
-      !sessionStorage.getItem(CACHE_KEYS.JOBS),
+      !isCached(CACHE_KEYS.INSTANCES) ||
+      !isCached(CACHE_KEYS.JOBS),
   );
 
   const fetchData = async () => {
     try {
-      const cachedInst = sessionStorage.getItem(CACHE_KEYS.INSTANCES);
-      const cachedJobs = sessionStorage.getItem(CACHE_KEYS.JOBS);
+      const cachedInst = await cacheGet(CACHE_KEYS.INSTANCES);
+      const cachedJobs = await cacheGet(CACHE_KEYS.JOBS);
 
       const processData = (allInstances, allJobs) => {
         const isJobFullyCompleted = (job) => {
@@ -3044,18 +3042,15 @@ function Audit() {
       const extractJobs = (data) => (data && data.jobs ? data.jobs : data);
 
       if (cachedInst && cachedJobs) {
-        processData(JSON.parse(cachedInst), JSON.parse(cachedJobs));
+        processData(cachedInst, cachedJobs);
       }
 
       const [resInst, resJobs] = await Promise.all([
         axios.get(`${API_URL}/api/tests/instances`),
         axios.get(`${API_URL}/api/jobs`),
       ]);
-      sessionStorage.setItem(
-        CACHE_KEYS.INSTANCES,
-        JSON.stringify(resInst.data),
-      );
-      sessionStorage.setItem(CACHE_KEYS.JOBS, JSON.stringify(resJobs.data));
+      cacheSet(CACHE_KEYS.INSTANCES, resInst.data);
+      cacheSet(CACHE_KEYS.JOBS, resJobs.data);
       processData(resInst.data, resJobs.data);
     } catch (err) {
       console.error(err);
