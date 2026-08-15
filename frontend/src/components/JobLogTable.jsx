@@ -92,6 +92,14 @@ export default function JobLogTable({
   const handleLoadMore = () => {
     if (page < totalPages) {
       setPage(p => p + 1);
+      
+      // Proactive Pre-fetching:
+      // If we are now on the last page of our locally loaded data, 
+      // fire the network request for the next batch in the background.
+      // This hides the 2-second API delay completely!
+      if (page + 1 >= totalPages && hasMoreData && onLoadMoreData && !isLoadingMoreData) {
+        onLoadMoreData();
+      }
     } else if (hasMoreData && onLoadMoreData && !isLoadingMoreData) {
       onLoadMoreData();
       // Increase page immediately so the newly loaded data shows up

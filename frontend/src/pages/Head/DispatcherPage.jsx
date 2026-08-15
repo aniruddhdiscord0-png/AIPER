@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
@@ -6,13 +6,15 @@ import { cacheGet, cacheSet } from "../../utils/cacheStorage";
 import API_URL from "../../utils/api";
 import Spinner from "../../components/Spinner";
 
-import { 
-  Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown, 
-  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield 
-} from "lucide-react";
+import {
+  Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown,
+  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield, CheckCircle
+, ClipboardCheck } from "lucide-react";
+import TransferManagement from "./TransferManagement";
 import { useSocket } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
 import { formatJobCode } from "../../utils/serialUtils";
+import InfiniteScroll from "../../components/InfiniteScroll";
 
 export default function Dispatcher() {
   const [assistants, setAssistants] = useState([]);
@@ -28,7 +30,7 @@ export default function Dispatcher() {
   const [assignments, setAssignments] = useState({}); // `${jobId}-${paramId}` -> assistantId
   const [success, setSuccess] = useState("");
   const [dispatchLoading, setDispatchLoading] = useState(
-    () => !isCached(CACHE_KEYS.JOBS),
+    () => !isCached(CACHE_KEYS.JOBS_HEAD_ACTIVE),
   );
   const [submittingJobId, setSubmittingJobId] = useState(null);
 
@@ -64,7 +66,7 @@ export default function Dispatcher() {
   };
 
   const fetchJobs = () => {
-    fetchWithCache(`${API_URL}/api/jobs?activeForHead=true`, CACHE_KEYS.JOBS, handleJobsData)
+    fetchWithCache(`${API_URL}/api/jobs?activeForHead=true`, CACHE_KEYS.JOBS_HEAD_ACTIVE, handleJobsData)
       .catch(console.error)
       .finally(() => setDispatchLoading(false));
   };
@@ -102,19 +104,17 @@ export default function Dispatcher() {
   useEffect(() => {
     if (!socket) return;
     const updateJobs = () => {
-      invalidateCache(CACHE_KEYS.JOBS);
+      invalidateCache(CACHE_KEYS.JOBS_HEAD_ACTIVE);
       fetchJobs();
     };
     const updateBoth = () => {
       updateJobs();
-      updateTransfers();
     };
 
     socket.on("JOB_CREATED", updateBoth);
     socket.on("JOB_UPDATED", updateBoth);
     socket.on("JOB_DELETED", updateBoth);
     socket.on("JOB_RETEST_INITIATED", updateBoth);
-    socket.on("TRANSFER_INITIATED", updateTransfers);
     socket.on("TRANSFER_RECEIVED", updateBoth);
     socket.on("TEST_SUBMITTED", updateBoth);
     socket.on("TEST_REVIEWED", updateBoth);
@@ -124,7 +124,6 @@ export default function Dispatcher() {
       socket.off("JOB_UPDATED", updateBoth);
       socket.off("JOB_DELETED", updateBoth);
       socket.off("JOB_RETEST_INITIATED", updateBoth);
-      socket.off("TRANSFER_INITIATED", updateTransfers);
       socket.off("TRANSFER_RECEIVED", updateBoth);
     };
   }, [socket, user]);
@@ -225,7 +224,7 @@ export default function Dispatcher() {
       setTimeout(() => setSuccess(""), 4000);
 
       // Refresh jobs list
-      invalidateCache(CACHE_KEYS.JOBS);
+      invalidateCache(CACHE_KEYS.JOBS_HEAD_ACTIVE);
       fetchJobs();
     } catch (err) {
       console.error(err);
@@ -252,7 +251,7 @@ export default function Dispatcher() {
       setReturnNote("");
       setTimeout(() => setSuccess(""), 4000);
 
-      invalidateCache(CACHE_KEYS.JOBS);
+      invalidateCache(CACHE_KEYS.JOBS_HEAD_ACTIVE);
       fetchJobs();
     } catch (err) {
       console.error(err);
@@ -293,8 +292,8 @@ export default function Dispatcher() {
       <TransferManagement />
 
 
-      {dispatchLoading ? (
-        <Spinner message="Loading pending jobs..." />
+      {dispatchLoading && jobs.length === 0 ? (
+        <div className="card"><Spinner message="Loading pending jobs..." /></div>
       ) : jobs.length === 0 ? (
         <div
           className="card"
@@ -631,7 +630,7 @@ export default function Dispatcher() {
                                             },
                                           },
                                         );
-                                        invalidateCache(CACHE_KEYS.JOBS);
+                                        invalidateCache(CACHE_KEYS.JOBS_HEAD_ACTIVE);
                                         fetchJobs();
                                       } catch (err) {
                                         alert(

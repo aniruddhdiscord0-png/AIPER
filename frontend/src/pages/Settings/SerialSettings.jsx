@@ -15,9 +15,9 @@ export default function SerialSettings() {
 
   const fetchSerialData = async () => {
     try {
-      const serialRes = await axios.get(`${API_URL}/api/serial-offset`);
+      const serialRes = await axios.get(`${API_URL}/api/jobs/next-sample-id`);
       setSerialPreview(serialRes.data.currentJobCode || serialRes.data.currentValue || "");
-      setNextSerialPreview(serialRes.data.previewJobCode || serialRes.data.previewValue || "");
+      setNextSerialPreview(serialRes.data.nextJobCode || serialRes.data.nextValue || "");
     } catch (err) {
       console.error(err);
     }
@@ -31,8 +31,8 @@ export default function SerialSettings() {
     setIsUpdatingSerialOffset(true);
     setConfirmSerialModal(false);
     try {
-      await axios.post(`${API_URL}/api/serial-offset/update`, {
-        newCurrentValue: serialOffset,
+      await axios.put(`${API_URL}/api/jobs/sample-serial-offset`, {
+        offset: serialOffset,
       });
       setSerialOffset("");
       fetchSerialData();

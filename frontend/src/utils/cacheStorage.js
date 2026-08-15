@@ -5,6 +5,9 @@ import { get, set, del } from 'idb-keyval';
 // Small, stable data → sessionStorage (fast sync access)
 const IDB_KEYS = new Set([
   'aiper_jobs',
+  'aiper_jobs_head_active',
+  'aiper_jobs_all',
+  'aiper_jobs_audit_head',
   'aiper_instances',
   'aiper_my_tasks',
   'aiper_transfers_in',

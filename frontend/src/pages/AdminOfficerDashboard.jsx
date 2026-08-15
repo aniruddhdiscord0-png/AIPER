@@ -14,7 +14,6 @@ function Audit() {
     <ActivityLogsPage
       title="Global Job Logs & Reports"
       fetchUrl={`${API_URL}/api/jobs`}
-      showCompletedActivity={false}
       enableSocketUpdates={true}
       onReopen={(job) => navigate("/admin-officer/jobs", { state: { reopenJob: job } })}
     />

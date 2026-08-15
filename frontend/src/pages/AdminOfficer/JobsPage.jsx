@@ -4,13 +4,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
 import { cacheGet, cacheSet } from "../../utils/cacheStorage";
 import API_URL from "../../utils/api";
+import { BLANK_FORM } from "../../utils/formUtils";
 import Spinner from "../../components/Spinner";
 
 import { 
   Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown, 
-  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield 
+  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity, AlertTriangle, RefreshCw, X, Shield 
 } from "lucide-react";
 import JobLogTable from "../../components/JobLogTable";
+import InfiniteScroll from "../../components/InfiniteScroll";
 import { useSocket } from "../../context/SocketContext";
 
 function buildJobCodePreview(serial, dateStr) {
@@ -216,7 +218,7 @@ export default function Jobs() {
 
   const fetchJobs = async () => {
     try {
-      await fetchWithCache(`${API_URL}/api/jobs?includeCancelled=true`, CACHE_KEYS.JOBS, handleJobsData);
+      await fetchWithCache(`${API_URL}/api/jobs?includeCancelled=true`, CACHE_KEYS.JOBS_ALL, handleJobsData);
     } catch (err) {
       console.error(err);
     }
@@ -268,7 +270,7 @@ export default function Jobs() {
   useEffect(() => {
     if (!socket) return;
     const triggerUpdate = () => {
-      invalidateCache(CACHE_KEYS.JOBS);
+      invalidateCache(CACHE_KEYS.JOBS_ALL);
       invalidateCache(CACHE_KEYS.INSTANCES);
       fetchJobs();
       // fetchStats is defined in another useEffect but it has its own dependency array...
@@ -743,7 +745,7 @@ export default function Jobs() {
         setAssignedMicroHead("");
         setAssignedChemicalHead("");
       }
-      invalidateCache(CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
+      invalidateCache(CACHE_KEYS.JOBS_ALL, CACHE_KEYS.STATS);
       fetchJobs();
       fetchNextSerial();
     } catch (err) {
@@ -770,7 +772,7 @@ export default function Jobs() {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
-      invalidateCache(CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
+      invalidateCache(CACHE_KEYS.JOBS_ALL, CACHE_KEYS.STATS);
       fetchJobs();
       setDeleteConfirmJobId(null);
     } catch (err) {
@@ -2381,8 +2383,10 @@ export default function Jobs() {
             navigate("/admin-officer/jobs", { state: { reopenJob: job } })
           }
           defaultExpandedId={location.state?.expandJobId}
+          hasMoreData={hasMoreJobs}
+          isLoadingMoreData={isLoadingMore}
+          onLoadMoreData={loadMoreJobs}
         />
-        <InfiniteScroll hasMore={hasMoreJobs} isLoading={isLoadingMore} onLoadMore={loadMoreJobs} />
       </div>
 
       {/* ── CUSTOM CONFIRMATION MODAL (SUBMIT) ── */}

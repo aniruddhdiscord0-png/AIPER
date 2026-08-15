@@ -467,10 +467,9 @@ function Audit() {
     <ActivityLogsPage
       title="Activity Logs"
       fetchUrl={`${API_URL}/api/jobs?includeCancelled=true`}
-      showCompletedActivity={true}
-      completedActivityScope="all"
       enableSocketUpdates={false}
       defaultExpandedId={location.state?.expandJobId}
+      cacheKey={CACHE_KEYS.JOBS_ALL}
     />
   );
 }

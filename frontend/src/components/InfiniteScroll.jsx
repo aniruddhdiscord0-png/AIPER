@@ -33,7 +33,7 @@ export default function InfiniteScroll({ hasMore, isLoading, onLoadMore }) {
           loadMoreRef.current();
         }
       },
-      { rootMargin: '800px' }
+      { rootMargin: '2000px' }
     );
 
     if (observerTarget.current) {

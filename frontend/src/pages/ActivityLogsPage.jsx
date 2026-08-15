@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -13,48 +13,35 @@ import { useSocket } from "../context/SocketContext";
 export default function ActivityLogsPage({
   title = "Activity Logs",
   fetchUrl = `${API_URL}/api/jobs`,
-  showCompletedActivity = false,
-  completedActivityScope = "all", // "all" or "department"
   enableSocketUpdates = false,
   onReopen = null,
   defaultExpandedId = null,
-  user = null, // needed for 'department' scope
+  user = null,
+  cacheKey = CACHE_KEYS.JOBS,
 }) {
-  const [instances, setInstances] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [hasMoreJobs, setHasMoreJobs] = useState(false);
   const [jobsCursor, setJobsCursor] = useState(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [auditLoading, setAuditLoading] = useState(
-    () => !isCached(CACHE_KEYS.JOBS) || (showCompletedActivity && !isCached(CACHE_KEYS.INSTANCES))
+    () => cacheKey && !isCached(cacheKey)
   );
 
   const socket = useSocket();
   const navigate = useNavigate();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      if (showCompletedActivity) {
-        const cachedInst = await cacheGet(CACHE_KEYS.INSTANCES);
-        if (cachedInst) {
-          setInstances(filterInstances(cachedInst));
+      if (cacheKey) {
+        const cachedJobs = await cacheGet(cacheKey);
+        if (cachedJobs) {
+          const parsed = typeof cachedJobs === 'string' ? JSON.parse(cachedJobs) : cachedJobs;
+          setJobs(parsed.jobs ? parsed.jobs : parsed);
         }
       }
-      
-      const cachedJobs = await cacheGet(CACHE_KEYS.JOBS);
-      if (cachedJobs) {
-        const parsed = typeof cachedJobs === 'string' ? JSON.parse(cachedJobs) : cachedJobs;
-        setJobs(parsed.jobs ? parsed.jobs : parsed);
-      }
 
-      const promises = [axios.get(fetchUrl)];
-      if (showCompletedActivity) {
-        promises.push(axios.get(`${API_URL}/api/tests/instances`));
-      }
-
-      const results = await Promise.all(promises);
-      const resJobs = results[0];
+      const resJobs = await axios.get(fetchUrl);
       
       if (resJobs.data && resJobs.data.jobs) {
         setJobs(resJobs.data.jobs);
@@ -63,29 +50,13 @@ export default function ActivityLogsPage({
       } else {
         setJobs(resJobs.data);
       }
-      cacheSet(CACHE_KEYS.JOBS, resJobs.data);
-
-      if (showCompletedActivity) {
-        const resInst = results[1];
-        cacheSet(CACHE_KEYS.INSTANCES, resInst.data);
-        setInstances(filterInstances(resInst.data));
-      }
+      if (cacheKey) cacheSet(cacheKey, resJobs.data);
     } catch (err) {
       console.error(err);
     } finally {
       setAuditLoading(false);
     }
-  };
-
-  const filterInstances = (allInstances) => {
-    const completed = allInstances.filter(i => i.status === 'COMPLETED');
-    if (completedActivityScope === "department" && user?.department) {
-      return completed.filter(
-        i => i.createdBy?.department === user.department || i.assignedTo?.department === user.department
-      );
-    }
-    return completed;
-  };
+  }, [fetchUrl, cacheKey]);
 
   const loadMoreJobs = async () => {
     if (!jobsCursor || isLoadingMore) return;
@@ -103,7 +74,7 @@ export default function ActivityLogsPage({
     }
   };
 
-  const handleServerSearch = async (term) => {
+  const handleServerSearch = useCallback(async (term) => {
     if (!term) {
       fetchData();
       return;
@@ -119,7 +90,7 @@ export default function ActivityLogsPage({
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [fetchUrl, fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -128,7 +99,7 @@ export default function ActivityLogsPage({
   useEffect(() => {
     if (!socket || !enableSocketUpdates) return;
     const triggerUpdate = () => {
-      invalidateCache(CACHE_KEYS.JOBS);
+      if (cacheKey) invalidateCache(cacheKey);
       fetchData();
     };
 
@@ -166,44 +137,6 @@ export default function ActivityLogsPage({
           />
         )}
       </div>
-
-      {showCompletedActivity && (
-        <div>
-          <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Completed Activity
-          </h2>
-          <div className="card glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-            <div className="table-scroll">
-              <table>
-                <thead style={{ backgroundColor: 'var(--color-surface-hover)' }}>
-                  <tr>
-                    <th>Test Code</th>
-                    <th>Client Name</th>
-                    <th>Analyst</th>
-                    <th>Date Completed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLoading && instances.length === 0 ? (
-                    <tr><td colSpan="4"><Spinner message="Loading completed tests..." /></td></tr>
-                  ) : instances.length === 0 ? (
-                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>No completed tests yet.</td></tr>
-                  ) : (
-                    instances.map(inst => (
-                      <tr key={inst._id}>
-                        <td style={{ fontFamily: 'monospace' }}>{formatJobCode(inst.testCode)}</td>
-                        <td style={{ fontWeight: 500 }}>{inst.clientName}</td>
-                        <td>{inst.assignedTo?.name}</td>
-                        <td>{new Date(inst.completedAt).toLocaleDateString('en-IN')}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

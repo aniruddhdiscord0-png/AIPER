@@ -52,6 +52,9 @@ export { isCached };
 // --- Cache Key Constants ---
 export const CACHE_KEYS = {
   JOBS: 'aiper_jobs',
+  JOBS_HEAD_ACTIVE: 'aiper_jobs_head_active',
+  JOBS_ALL: 'aiper_jobs_all',
+  JOBS_AUDIT_HEAD: 'aiper_jobs_audit_head',
   USERS: 'aiper_users',
   INSTANCES: 'aiper_instances',
   STATS: 'aiper_stats',

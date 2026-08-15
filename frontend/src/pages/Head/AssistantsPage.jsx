@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
@@ -6,7 +6,7 @@ import { cacheGet, cacheSet } from "../../utils/cacheStorage";
 import API_URL from "../../utils/api";
 import Spinner from "../../components/Spinner";
 
-import { Play, Users, Check, X, Search, Shield, Activity } from "lucide-react";
+import { Edit, Trash2, Play, Users, Check, X, Search, Shield, Activity } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function Assistants() {

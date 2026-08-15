@@ -164,7 +164,7 @@ export default function Dashboard() {
           subtitle="Fully completed"
         />
         <StatCard
-          icon={UsersIcon}
+          icon={Users}
           title="Active Analysts"
           value={stats.activeAnalysts}
           color="#8B5CF6"
