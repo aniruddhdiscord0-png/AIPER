@@ -11,3 +11,12 @@ export const formatJobCode = (code) => {
 
   return `${datePart}-${deptPart}-${serialPart}${retestPart}`;
 };
+
+export const validateJobCode = (val) => {
+  if (!val) return "";
+  const parts = val.split("-");
+  if (parts.length !== 3 || parts[0].length !== 8 || (parts[1] !== "M" && parts[1] !== "C") || parts[2].length !== 4) {
+    return "Format must be YYYYMMDD-M-XXXX or YYYYMMDD-C-XXXX";
+  }
+  return "";
+};
