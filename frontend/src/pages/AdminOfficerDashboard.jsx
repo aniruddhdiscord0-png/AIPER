@@ -1664,7 +1664,7 @@ function Jobs() {
         setAssignedMicroHead("");
         setAssignedChemicalHead("");
       }
-      invalidateCache(CACHE_KEYS.JOBS);
+      invalidateCache(CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
       fetchJobs();
       fetchNextSerial();
     } catch (err) {
@@ -1691,7 +1691,7 @@ function Jobs() {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
-      invalidateCache(CACHE_KEYS.JOBS);
+      invalidateCache(CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
       fetchJobs();
       setDeleteConfirmJobId(null);
     } catch (err) {

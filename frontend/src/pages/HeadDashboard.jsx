@@ -861,6 +861,8 @@ function Dispatcher() {
     socket.on("JOB_RETEST_INITIATED", updateBoth);
     socket.on("TRANSFER_INITIATED", updateTransfers);
     socket.on("TRANSFER_RECEIVED", updateBoth);
+    socket.on("TEST_SUBMITTED", updateBoth);
+    socket.on("TEST_REVIEWED", updateBoth);
 
     return () => {
       socket.off("JOB_CREATED", updateBoth);
@@ -2316,7 +2318,7 @@ function ReviewQueue() {
   useEffect(() => {
     if (!socket) return;
     const refresh = () => {
-      invalidateCache(CACHE_KEYS.INSTANCES);
+      invalidateCache(CACHE_KEYS.INSTANCES, CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
       fetchReviewItems();
     };
 
@@ -2336,7 +2338,7 @@ function ReviewQueue() {
         action: "APPROVE",
       });
       setSuccess("Approved and Completed. Report Generated.");
-      invalidateCache(CACHE_KEYS.INSTANCES);
+      invalidateCache(CACHE_KEYS.INSTANCES, CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
       fetchReviewItems();
       setSelectedInstance(null);
       setTimeout(() => setSuccess(""), 4000);
@@ -2434,7 +2436,7 @@ function ReviewQueue() {
       });
       setSuccess(`Sent ${selected.length} parameter(s) for retest.`);
       exitReassignMode();
-      invalidateCache(CACHE_KEYS.INSTANCES);
+      invalidateCache(CACHE_KEYS.INSTANCES, CACHE_KEYS.JOBS, CACHE_KEYS.STATS);
       fetchReviewItems();
       setSelectedInstance(null);
       setTimeout(() => setSuccess(""), 4000);
