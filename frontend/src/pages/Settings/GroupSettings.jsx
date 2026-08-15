@@ -138,9 +138,6 @@ export default function GroupSettings() {
         if (statusModal.show) {
           setStatusModal({ show: false, type: "", title: "", message: "" });
         }
-        if (confirmSerialModal) {
-          setConfirmSerialModal(false);
-        }
         if (isAddingGroup) setIsAddingGroup(false);
         if (isAddingSubgroup) setIsAddingSubgroup(false);
         if (isAddingParam) setIsAddingParam(false);
@@ -151,7 +148,6 @@ export default function GroupSettings() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     statusModal.show,
-    confirmSerialModal,
     isAddingGroup,
     isAddingSubgroup,
     isAddingParam,
@@ -435,176 +431,6 @@ export default function GroupSettings() {
 
 
 
-      {/* Sample Serial Settings Card */}
-      {user?.role !== "HEAD" && (
-        <div
-          className="card"
-          style={{
-            marginBottom: "2rem",
-            padding: "1.5rem",
-            backgroundColor: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-          }}
-        >
-          <h3
-            style={{
-              margin: "0 0 1.5rem 0",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              color: "#166534",
-              fontSize: "1.1rem",
-            }}
-          >
-            <Activity size={18} /> Sample Serial (Job Code) Settings
-          </h3>
-          <div
-            className="grid-2"
-            style={{ gap: "2rem", alignItems: "flex-start" }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: "0.9rem",
-                  color: "#166534",
-                  fontWeight: 600,
-                  marginBottom: "0.5rem",
-                }}
-              >
-                Current Serial Number:
-              </div>
-              <div
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  color: "#15803d",
-                  backgroundColor: "rgba(255,255,255,0.7)",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "var(--radius-md)",
-                  display: "inline-block",
-                  border: "1px solid #86efac",
-                }}
-              >
-                {serialPreview || "Loading..."}
-              </div>
-              <div
-                style={{
-                  fontSize: "0.9rem",
-                  color: "#166534",
-                  fontWeight: 600,
-                  marginTop: "1rem",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                Next Job Code Number:
-              </div>
-              <div
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  color: "#047857",
-                  backgroundColor: "rgba(255,255,255,0.7)",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "var(--radius-md)",
-                  display: "inline-block",
-                  border: "1px solid #6ee7b7",
-                }}
-              >
-                {nextSerialPreview || "Loading..."}
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: "0.9rem",
-                  color: "#166534",
-                  fontWeight: 600,
-                  marginBottom: "0.5rem",
-                }}
-              >
-                Update Serial Number:
-              </div>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength="10"
-                  placeholder="10 digit Job Code"
-                  value={serialOffset}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "");
-                    if (val.length <= 10) {
-                      setSerialOffset(val);
-                      setSerialOffsetError(validateJobCode(val));
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    border: serialOffsetError
-                      ? "1px solid #ef4444"
-                      : serialOffset.length === 10
-                      ? "1px solid #16a34a"
-                      : "1px solid #86efac",
-                    backgroundColor: "white",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={handleUpdateSerialOffset}
-                  disabled={isUpdatingSerialOffset || !serialOffset || !!serialOffsetError || serialOffset.length !== 10}
-                  className="btn btn-primary"
-                  style={{ backgroundColor: "#16a34a" }}
-                >
-                  {isUpdatingSerialOffset ? "Updating..." : "Update Serial"}
-                </button>
-              </div>
-              {serialOffsetError && (
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#ef4444",
-                    marginTop: "0.35rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                  }}
-                >
-                  ⚠️ {serialOffsetError}
-                </div>
-              )}
-              {!serialOffsetError && serialOffset.length === 10 && (
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#16a34a",
-                    marginTop: "0.35rem",
-                  }}
-                >
-                  ✅ Valid code — next job will be{" "}
-                  <strong>
-                    {`20${serialOffset.slice(0, 2)}-${serialOffset.slice(2, 4)}-${serialOffset.slice(4, 6)}`}
-                  </strong>
-                  , sequence #{parseInt(serialOffset.slice(6), 10) + 1}.
-                </div>
-              )}
-              {!serialOffset && (
-                <div
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#15803d",
-                    marginTop: "0.5rem",
-                  }}
-                >
-                  Input the last used serial number (the next job will be +1 of this).
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
         {/* Left Panel: Hierarchy Tree */}

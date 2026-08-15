@@ -142,7 +142,6 @@ jobSchema.index({ createdAt: -1 });
 jobSchema.index({ 'sample.nabl_type': 1 });
 jobSchema.index({ sampleSerial: -1 });
 jobSchema.index({ isRetest: 1, parentJobId: 1 });
-jobSchema.index({ jobCode: 1 });
 jobSchema.index({ clientName: 1 });
 
 module.exports = mongoose.model('Job', jobSchema);

@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
 import { cacheGet, cacheSet } from "../../utils/cacheStorage";
 import API_URL from "../../utils/api";
 import Spinner from "../../components/Spinner";
+import { AuthContext } from "../../context/AuthContext";
 
-import { Play, Check, Users, Activity, Clock, FileText, ChevronRight } from "lucide-react";
+import { Play, Check, CheckCircle, Users, Activity, Clock, FileText, ChevronRight } from "lucide-react";
 import { formatJobCode } from "../../utils/serialUtils";
 
 export default function Dashboard() {
