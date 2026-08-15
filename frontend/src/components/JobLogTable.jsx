@@ -14,6 +14,7 @@ import JobTimeline from "./JobTimeline";
 import GlobalJobHistory from "./GlobalJobHistory";
 import ReportModal from "./ReportModal";
 import InfiniteScroll from "./InfiniteScroll";
+import { formatJobCode } from "../utils/serialUtils";
 
 export default function JobLogTable({
   jobs,
@@ -32,6 +33,9 @@ export default function JobLogTable({
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [expandedJobId, setExpandedJobId] = useState(defaultExpandedId || null);
   const [page, setPage] = useState(1);
+  // True during the debounce window — prevents the local filter from showing
+  // a false "no results" against stale data before the server responds
+  const [serverSearchPending, setServerSearchPending] = useState(false);
   const PAGE_SIZE = 15;
 
   React.useEffect(() => {
@@ -41,7 +45,9 @@ export default function JobLogTable({
   // Debounced server search
   React.useEffect(() => {
     if (!onServerSearch) return;
+    if (searchTerm) setServerSearchPending(true);
     const timeoutId = setTimeout(() => {
+      setServerSearchPending(false);
       onServerSearch(searchTerm);
     }, 300);
     return () => clearTimeout(timeoutId);
@@ -76,15 +82,22 @@ export default function JobLogTable({
   // Group jobs: only show ROOT jobs in the main table. Child jobs will be fetched/passed inside JobTimeline.
   const rootJobs = jobs.filter((j) => !j.isRetest);
 
-  const filteredJobsAll = rootJobs.filter((j) => {
-    const term = searchTerm.toLowerCase();
-    const matchSearch =
-      j.jobCode.toLowerCase().includes(term) ||
-      j.clientName.toLowerCase().includes(term);
-    const jobStatus = getJobStatus(j);
-    const matchStatus = statusFilter === "ALL" || jobStatus === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  // When server search is active, skip local filtering entirely —
+  // the server owns the result set. Only apply local status filter.
+  const filteredJobsAll = (onServerSearch && searchTerm)
+    ? rootJobs.filter((j) => {
+        const jobStatus = getJobStatus(j);
+        return statusFilter === "ALL" || jobStatus === statusFilter;
+      })
+    : rootJobs.filter((j) => {
+        const term = searchTerm.toLowerCase();
+        const matchSearch =
+          j.jobCode.toLowerCase().includes(term) ||
+          j.clientName.toLowerCase().includes(term);
+        const jobStatus = getJobStatus(j);
+        const matchStatus = statusFilter === "ALL" || jobStatus === statusFilter;
+        return matchSearch && matchStatus;
+      });
 
   const totalPages = Math.ceil(filteredJobsAll.length / PAGE_SIZE);
   const visibleJobs = filteredJobsAll.slice(0, page * PAGE_SIZE);
@@ -153,12 +166,7 @@ export default function JobLogTable({
     }
   };
 
-  const formatJobCode = (code) => {
-    if (!code) return "";
-    return code
-      .replace(/-N[12]([a-z]?)(?:-v\d+)?$/g, "-N$1")
-      .replace(/-[12][a-z]?(?:-v\d+)?$/g, "");
-  };
+
 
   const showActions =
     !!onDeleteJob ||
@@ -276,7 +284,9 @@ export default function JobLogTable({
                   colSpan={showActions ? 6 : 5}
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
-                  No jobs match your filters.
+                  {serverSearchPending || isLoadingMoreData
+                    ? null
+                    : "No jobs match your filters."}
                 </td>
               </tr>
             ) : (
@@ -537,7 +547,9 @@ export default function JobLogTable({
               color: "var(--color-text-muted)",
             }}
           >
-            No jobs match your filters.
+            {serverSearchPending || isLoadingMoreData
+              ? null
+              : "No jobs match your filters."}
           </div>
         ) : (
           visibleJobs.map((job) => (

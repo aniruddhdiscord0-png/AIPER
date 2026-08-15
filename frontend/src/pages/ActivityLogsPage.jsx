@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FileText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import JobLogTable from "../components/JobLogTable";
 import Spinner from "../components/Spinner";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../utils/cache";
-import { cacheSet, cacheGet } from "../utils/cacheStorage";
 import API_URL from "../utils/api";
-import { formatJobCode } from "../utils/serialUtils";
 import { useSocket } from "../context/SocketContext";
 
 export default function ActivityLogsPage({
@@ -29,28 +26,18 @@ export default function ActivityLogsPage({
   );
 
   const socket = useSocket();
-  const navigate = useNavigate();
 
   const fetchData = useCallback(async () => {
     try {
-      if (cacheKey) {
-        const cachedJobs = await cacheGet(cacheKey);
-        if (cachedJobs) {
-          const parsed = typeof cachedJobs === 'string' ? JSON.parse(cachedJobs) : cachedJobs;
-          setJobs(parsed.jobs ? parsed.jobs : parsed);
+      const resJobs = await fetchWithCache(fetchUrl, cacheKey, (raw) => {
+        if (raw && raw.jobs) {
+          setJobs(raw.jobs);
+          setHasMoreJobs(raw.hasMore || false);
+          setJobsCursor(raw.nextCursor || null);
+        } else if (Array.isArray(raw)) {
+          setJobs(raw);
         }
-      }
-
-      const resJobs = await axios.get(fetchUrl);
-      
-      if (resJobs.data && resJobs.data.jobs) {
-        setJobs(resJobs.data.jobs);
-        setHasMoreJobs(resJobs.data.hasMore || false);
-        setJobsCursor(resJobs.data.nextCursor || null);
-      } else {
-        setJobs(resJobs.data);
-      }
-      if (cacheKey) cacheSet(cacheKey, resJobs.data);
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -58,7 +45,7 @@ export default function ActivityLogsPage({
     }
   }, [fetchUrl, cacheKey]);
 
-  const loadMoreJobs = async () => {
+  const loadMoreJobs = useCallback(async () => {
     if (!jobsCursor || isLoadingMore) return;
     setIsLoadingMore(true);
     try {
@@ -72,13 +59,16 @@ export default function ActivityLogsPage({
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [fetchUrl, jobsCursor, isLoadingMore]);
 
   const handleServerSearch = useCallback(async (term) => {
     if (!term) {
       fetchData();
       return;
     }
+    // Clear immediately so the local filter doesn't run against stale jobs
+    // and show a false "No jobs match your filter" while the request is in-flight
+    setJobs([]);
     setIsLoadingMore(true);
     try {
       const separator = fetchUrl.includes('?') ? '&' : '?';
@@ -94,7 +84,7 @@ export default function ActivityLogsPage({
 
   useEffect(() => {
     fetchData();
-  }, [fetchUrl]);
+  }, [fetchData]);
 
   useEffect(() => {
     if (!socket || !enableSocketUpdates) return;
@@ -113,7 +103,7 @@ export default function ActivityLogsPage({
     return () => {
       events.forEach(e => socket.off(e, triggerUpdate));
     };
-  }, [socket, enableSocketUpdates]);
+  }, [socket, enableSocketUpdates, fetchData, cacheKey]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

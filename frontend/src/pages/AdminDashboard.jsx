@@ -10,11 +10,7 @@ import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from '../utils/
 import { cacheGet, cacheSet } from '../utils/cacheStorage';
 import Spinner from '../components/Spinner';
 import API_URL from '../utils/api';
-
-const formatJobCode = (code) => {
-  if (!code) return '';
-  return code.replace(/-N[12]([a-z]?)(?:-v\d+)?$/g, '-N$1').replace(/-[12][a-z]?(?:-v\d+)?$/g, '');
-};
+import { formatJobCode } from '../utils/serialUtils';
 
 function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -25,38 +21,31 @@ function Dashboard() {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [statsLoading, setStatsLoading] = useState(
-    () => !isCached(CACHE_KEYS.JOBS) || !isCached(CACHE_KEYS.INSTANCES)
+    () => !isCached(CACHE_KEYS.STATS) || !isCached(CACHE_KEYS.INSTANCES)
   );
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        let jobsData, instancesData, usersData;
-
         // Use cache for initial render
-        const cachedJobs = await cacheGet(CACHE_KEYS.JOBS);
+        const cachedStats = await cacheGet(CACHE_KEYS.STATS);
         const cachedInstances = await cacheGet(CACHE_KEYS.INSTANCES);
         const cachedUsers = await cacheGet(CACHE_KEYS.USERS);
 
-        const computeStats = (jobs, instances, users) => {
-          if (!Array.isArray(jobs)) jobs = [];
+        const computeStats = (statsObj, instances, users) => {
+          if (!statsObj) statsObj = { ongoingJobs: 0, completedJobs: 0 };
           if (!Array.isArray(instances)) instances = [];
           if (!Array.isArray(users)) users = [];
-          const ongoingJobs = jobs.filter(j => {
-            const microDone = !j.distribution?.micro?.required || j.distribution.micro.status === 'COMPLETED';
-            const chemicalDone = !j.distribution?.chemical?.required || j.distribution.chemical.status === 'COMPLETED';
-            return !(microDone && chemicalDone);
-          }).length;
-          const completedJobs = jobs.filter(j => {
-            const microDone = !j.distribution?.micro?.required || j.distribution.micro.status === 'COMPLETED';
-            const chemicalDone = !j.distribution?.chemical?.required || j.distribution.chemical.status === 'COMPLETED';
-            return microDone && chemicalDone;
-          }).length;
+
           const activeAnalysts = new Set(
             instances.filter(i => i.status === 'PENDING' && i.assignedTo).map(i => i.assignedTo._id || i.assignedTo)
           ).size;
 
-          setStats({ ongoingJobs, completedJobs, activeAnalysts });
+          setStats({
+            ongoingJobs: statsObj.ongoingJobs || 0,
+            completedJobs: statsObj.completedJobs || 0,
+            activeAnalysts
+          });
 
           const sortedInstances = [...instances]
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
@@ -65,19 +54,19 @@ function Dashboard() {
           setRecentActivity(sortedInstances);
         };
 
-        if (cachedJobs && cachedInstances && cachedUsers) {
-          computeStats(cachedJobs, cachedInstances, cachedUsers);
+        if (cachedStats && cachedInstances && cachedUsers) {
+          computeStats(cachedStats, cachedInstances, cachedUsers);
         }
 
-        const [jobsRes, instancesRes, usersRes] = await Promise.all([
-          axios.get(`${API_URL}/api/jobs?includeCancelled=true`),
+        const [statsRes, instancesRes, usersRes] = await Promise.all([
+          axios.get(`${API_URL}/api/jobs/stats`),
           axios.get(`${API_URL}/api/tests/instances`),
           axios.get(`${API_URL}/api/users`)
         ]);
 
-        computeStats(jobsRes.data, instancesRes.data, usersRes.data);
+        computeStats(statsRes.data, instancesRes.data, usersRes.data);
 
-        cacheSet(CACHE_KEYS.JOBS, jobsRes.data);
+        cacheSet(CACHE_KEYS.STATS, statsRes.data);
         cacheSet(CACHE_KEYS.INSTANCES, instancesRes.data);
         cacheSet(CACHE_KEYS.USERS, usersRes.data);
 
