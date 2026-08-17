@@ -8,8 +8,8 @@ import Spinner from "../../components/Spinner";
 
 import { 
   Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown, 
-  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield 
-} from "lucide-react";
+  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield,
+  AlertTriangle, Calendar } from "lucide-react";
 import JobLogTable from "../../components/JobLogTable";
 import { useSocket } from "../../context/SocketContext";
 

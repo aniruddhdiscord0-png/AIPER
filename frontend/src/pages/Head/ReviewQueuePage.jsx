@@ -8,8 +8,8 @@ import Spinner from "../../components/Spinner";
 
 import { 
   Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown, 
-  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield 
-, ClipboardCheck } from "lucide-react";
+  ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield,
+  ClipboardCheck, CheckCircle, RotateCcw } from "lucide-react";
 import { useSocket } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
 import { formatJobCode } from "../../utils/serialUtils";
