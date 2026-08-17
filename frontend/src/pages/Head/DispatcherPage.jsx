@@ -15,6 +15,7 @@ import { useSocket } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
 import { formatJobCode } from "../../utils/serialUtils";
 import InfiniteScroll from "../../components/InfiniteScroll";
+import JobDetailsModal from "../../components/JobDetailsModal";
 
 export default function Dispatcher() {
   const [assistants, setAssistants] = useState([]);

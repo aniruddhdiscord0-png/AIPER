@@ -9,8 +9,9 @@ import Spinner from "../../components/Spinner";
 import { 
   Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown, 
   ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield,
-  AlertTriangle, Calendar } from "lucide-react";
+  AlertTriangle, Calendar, Repeat2 } from "lucide-react";
 import JobLogTable from "../../components/JobLogTable";
+import CascadingParameterSelector from "../../components/CascadingParameterSelector";
 import { useSocket } from "../../context/SocketContext";
 
 function buildJobCodePreview(serial, dateStr) {
@@ -266,7 +267,18 @@ export default function JobForm({ jobs, heads, editingJobId, reopenParentId, onC
     socket.on("JOB_RETURNED", triggerUpdate);
     socket.on("JOB_DELETED", triggerUpdate);
 
-    return (
+    return () => {
+      socket.off("JOB_CREATED", triggerUpdate);
+      socket.off("JOB_RETEST_INITIATED", triggerUpdate);
+      socket.off("TRANSFER_INITIATED", triggerUpdate);
+      socket.off("TRANSFER_RECEIVED", triggerUpdate);
+      socket.off("TEST_SUBMITTED", triggerUpdate);
+      socket.off("TEST_REVIEWED", triggerUpdate);
+      socket.off("JOB_UPDATED", triggerUpdate);
+      socket.off("JOB_RETURNED", triggerUpdate);
+      socket.off("JOB_DELETED", triggerUpdate);
+    };
+  }, [socket]);
 
           const editingJob = editingJobId
             ? jobs.find((j) => j._id === editingJobId)
