@@ -56,8 +56,8 @@ export default function Dashboard() {
           const sortedInstances = [...instances]
             .filter(
               (i) =>
-                i.createdBy?.department === user.department ||
-                i.assignedTo?.department === user.department,
+                i.createdBy?.department === user?.department ||
+                i.assignedTo?.department === user?.department,
             )
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
             .slice(0, 5);

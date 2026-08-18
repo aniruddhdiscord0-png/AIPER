@@ -92,7 +92,7 @@ export default function Dispatcher() {
     fetchWithCache(`${API_URL}/api/users`, CACHE_KEYS.USERS, (data) =>
       setAssistants(
         data.filter(
-          (u) => u.role === "ASSISTANT" && u.department === user.department,
+          (u) => u.role === "ASSISTANT" && u.department === user?.department,
         ),
       ),
     ).catch(console.error);
