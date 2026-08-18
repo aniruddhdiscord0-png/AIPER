@@ -51,7 +51,7 @@ export default function Dispatcher() {
       const headId = dist?.assignedHead?._id || dist?.assignedHead;
       return (
         ["PENDING", "PENDING_REVIEW", "REVIEW_APPROVED"].includes(dist?.status) &&
-        (!headId || headId === user._id)
+        (!headId || headId === user?._id)
       );
     });
   };
