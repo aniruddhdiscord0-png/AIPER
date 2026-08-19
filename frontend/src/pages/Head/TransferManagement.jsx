@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { ArrowRightLeft, PackageOpen, AlertCircle, Check, Send, PackageCheck } from "lucide-react";
+import { ArrowRightLeft, PackageOpen, AlertCircle, Check, Send, PackageCheck, CheckCircle } from "lucide-react";
 import API_URL from "../../utils/api";
 import Spinner from "../../components/Spinner";
 import { formatJobCode } from "../../utils/serialUtils";
 import { useSocket } from "../../context/SocketContext";
+import { AuthContext } from "../../context/AuthContext";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
 
 export default function TransferManagement() {
@@ -15,6 +16,8 @@ export default function TransferManagement() {
   );
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferConfirmData, setTransferConfirmData] = useState(null);
+  const [success, setSuccess] = useState("");
+  const { user } = useContext(AuthContext);
   
   const socket = useSocket();
 

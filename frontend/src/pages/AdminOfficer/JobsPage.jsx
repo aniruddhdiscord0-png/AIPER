@@ -350,7 +350,7 @@ export default function Jobs() {
           return;
         }
         if (deleteConfirmJobId) {
-          executeDelete();
+          executeCancelJob();
           return;
         }
 

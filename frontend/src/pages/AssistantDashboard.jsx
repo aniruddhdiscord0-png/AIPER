@@ -98,7 +98,6 @@ export default function AssistantDashboard() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       fetchTestMethods();
-      setEditingMethodId(null);
     } catch (err) {
       alert(err.response?.data?.message || 'Error updating test method');
     }

@@ -25,42 +25,33 @@ export default function ReportModal({ job, onClose }) {
     else if (job.sample?.nabl_type === 'Non Nabl') setReportType('non_nabl');
   }, [job._id]);
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadReport = async () => {
-      setLoading(true);
-      setBlob(null);
-      try {
-        const token = localStorage.getItem('token');
-        // 1. Fetch Status
-        const statusRes = await axios.get(`${API_URL}/api/export/report/${job._id}/status?type=${reportType}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!isMounted) return;
-        setStatus(statusRes.data);
+  const loadReport = React.useCallback(async () => {
+    setLoading(true);
+    setBlob(null);
+    try {
+      const token = localStorage.getItem('token');
+      // 1. Fetch Status
+      const statusRes = await axios.get(`${API_URL}/api/export/report/${job._id}/status?type=${reportType}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setStatus(statusRes.data);
 
-        // 2. Fetch Blob
-        const blobRes = await axios.get(`${API_URL}/api/export/report/${job._id}?type=${reportType}&_t=${Date.now()}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: 'blob'
-        });
-        if (!isMounted) return;
-        setBlob(blobRes.data);
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('Failed to load report', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    loadReport();
-
-    return () => {
-      isMounted = false; // Prevent state updates if component unmounts or reportType changes
-    };
+      // 2. Fetch Blob
+      const blobRes = await axios.get(`${API_URL}/api/export/report/${job._id}?type=${reportType}&_t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      setBlob(blobRes.data);
+    } catch (err) {
+      console.error('Failed to load report', err);
+    } finally {
+      setLoading(false);
+    }
   }, [job._id, reportType]);
+
+  useEffect(() => {
+    loadReport();
+  }, [loadReport]);
 
   const handleDownload = () => {
     if (!blob) return;
