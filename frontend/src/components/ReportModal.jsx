@@ -19,11 +19,20 @@ export default function ReportModal({ job, onClose }) {
 
   const isHybrid = job.sample?.nabl_type === 'Hybrid';
 
+  const isHybridNabl = job.sample?.nabl_type === 'Nabl' && !!job.siblingJobId;
+  const siblingComplete = (() => {
+    if (!isHybridNabl) return true;
+    const sib = job.siblingJobId;
+    const microOk = !sib?.distribution?.micro?.required || sib?.distribution?.micro?.status === 'COMPLETED';
+    const chemOk = !sib?.distribution?.chemical?.required || sib?.distribution?.chemical?.status === 'COMPLETED';
+    return microOk && chemOk;
+  })();
+
   useEffect(() => {
     // If the modal is kept open but job changes, update the type
     if (job.sample?.nabl_type === 'Nabl') setReportType('nabl');
     else if (job.sample?.nabl_type === 'Non Nabl') setReportType('non_nabl');
-  }, [job._id]);
+  }, [job._id, job.sample?.nabl_type]);
 
   const loadReport = React.useCallback(async () => {
     setLoading(true);
@@ -50,8 +59,9 @@ export default function ReportModal({ job, onClose }) {
   }, [job._id, reportType]);
 
   useEffect(() => {
+    if (!siblingComplete) return;
     loadReport();
-  }, [loadReport]);
+  }, [loadReport, siblingComplete]);
 
   const handleDownload = () => {
     if (!blob) return;
@@ -160,7 +170,7 @@ export default function ReportModal({ job, onClose }) {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button onClick={handleDownload} disabled={!blob} style={{ padding: '0.6rem 1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: blob ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, opacity: blob ? 1 : 0.6 }}>
+          <button onClick={handleDownload} disabled={!blob || !siblingComplete} style={{ padding: '0.6rem 1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: (blob && siblingComplete) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, opacity: (blob && siblingComplete) ? 1 : 0.6 }}>
             <Download size={16} /> Download DOCX
           </button>
           
@@ -198,7 +208,22 @@ export default function ReportModal({ job, onClose }) {
 
       {/* Document Preview Area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-        {loading ? (
+        {!siblingComplete ? (
+          <div style={{ marginTop: '10vh', textAlign: 'center', maxWidth: '480px', backgroundColor: 'var(--color-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+            <h3 style={{ color: 'var(--color-text-main)', marginBottom: '0.75rem' }}>
+              Report Not Ready Yet
+            </h3>
+            <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+              This is a Hybrid job. The NABL report can only be generated once the
+              Non-NABL sibling job (<strong>{job.siblingJobId?.jobCode}</strong>) has
+              also been fully completed and approved by the Department Head.
+            </p>
+            <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', backgroundColor: 'var(--color-surface-hover)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+              💡 Both jobs must be complete to ensure the ULR number is assigned in the correct sequence.
+            </div>
+          </div>
+        ) : loading ? (
           <div style={{ marginTop: '10vh' }}>
             <Spinner message="Generating Document Preview..." />
           </div>
