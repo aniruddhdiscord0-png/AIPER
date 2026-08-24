@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
@@ -116,6 +116,10 @@ export default function Jobs() {
     return saved ? JSON.parse(saved) : { enabled: false, panelType: null };
   });
   const [ulrPreview, setUlrPreview] = useState("");
+  const [assignUlrToNonNabl, setAssignUlrToNonNabl] = useState(false);
+  const [ulrEditMode, setUlrEditMode] = useState(false);
+  const [customUlrNumber, setCustomUlrNumber] = useState('');
+  const [ulrValidation, setUlrValidation] = useState({ valid: null, error: null, fullUlr: null });
 
   // Fix 2: Shared group data — fetched once, passed to all CascadingParameterSelector instances
   const [allGroupData, setAllGroupData] = useState(null);
@@ -203,9 +207,30 @@ export default function Jobs() {
       setNonNablParams([]);
       setNonNablGroupMetadata(null);
       setNonNablPesticidePanel({ enabled: false, panelType: null });
+      setAssignUlrToNonNabl(false);
+      setUlrEditMode(false);
+      setCustomUlrNumber('');
+      setUlrValidation({ valid: null, error: null, fullUlr: null });
       setSelectorResetKey(k => k + 1);
     }
   };
+
+  const validationTimer = useRef(null);
+  const triggerUlrValidation = useCallback((num) => {
+    if (validationTimer.current) clearTimeout(validationTimer.current);
+    if (!num) {
+      setUlrValidation({ valid: null, error: null, fullUlr: null });
+      return;
+    }
+    validationTimer.current = setTimeout(async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/jobs/validate-ulr?number=${num}`);
+        setUlrValidation(res.data);
+      } catch {
+        setUlrValidation({ valid: false, error: 'Validation failed', fullUlr: null });
+      }
+    }, 400);
+  }, []);
 
   const handleJobsData = (data) => {
     if (data && data.jobs) {
@@ -382,9 +407,10 @@ export default function Jobs() {
     }
   }, [location.state]);
 
-  const populateFormFromJob = (j) => {
+  const populateFormFromJob = async (j) => {
     setFormData({
       ...BLANK_FORM,
+      jobCode: j.jobCode || "",
       customer_name: j.clientName || "",
       customer_address: j.customer?.customer_address || "",
       contact_person: j.customer?.contact_person || "",
@@ -419,7 +445,7 @@ export default function Jobs() {
         ? new Date(j.sample.received_date).getFullYear().toString()
         : "",
       received_mode: j.sample?.received_mode || "Select",
-      nabl_mode: j.sample?.nabl_type === "Nabl" ? "nabl" : "non_nabl",
+      nabl_mode: j.siblingJobId ? "hybrid" : (j.sample?.nabl_type === "Nabl" ? "nabl" : "non_nabl"),
       nabl_type: j.sample?.nabl_type || "",
       ulr_no: j.sample?.ulr_no || "",
       test_parameters: j.sample?.test_parameters || [],
@@ -469,32 +495,55 @@ export default function Jobs() {
     setGroupMetadata(j.groupMetadata || null);
     setPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
 
-    setNablParams(mapParams(j.nablParameters || j.parameters)); // Fallback to parameters for hybrid editing logic
-    setNablShowSpecifications(
-      !!j.nablShowSpecifications || !!j.showSpecifications,
-    );
-    setNablGroupMetadata(j.nablGroupMetadata || j.groupMetadata || null);
-    setNablPesticidePanel(
-      j.nablPesticidePanel ||
-      j.pesticidePanel || { enabled: false, panelType: null },
-    );
-
-    setNonNablParams(mapParams(j.nonNablParameters || j.parameters)); // Fallback
-    setNonNablShowSpecifications(
-      !!j.nonNablShowSpecifications || !!j.showSpecifications,
-    );
-    setNonNablGroupMetadata(j.nonNablGroupMetadata || j.groupMetadata || null);
-    setNonNablPesticidePanel(
-      j.nonNablPesticidePanel ||
-      j.pesticidePanel || { enabled: false, panelType: null },
-    );
-
     setShowForm(true);
     setSections({ customer: true, sample: true, compliance: true });
+
+    if (j.siblingJobId) {
+      try {
+        const sibRes = await axios.get(`${API_URL}/api/jobs/${j.siblingJobId._id || j.siblingJobId}`);
+        const sib = sibRes.data;
+        const isCurrentJobNabl = j.sample?.nabl_type === 'Nabl';
+
+        if (isCurrentJobNabl) {
+          setNablParams(mapParams(j.parameters));
+          setNablShowSpecifications(!!j.showSpecifications);
+          setNablGroupMetadata(j.groupMetadata || null);
+          setNablPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
+          
+          setNonNablParams(mapParams(sib.parameters));
+          setNonNablShowSpecifications(!!sib.showSpecifications);
+          setNonNablGroupMetadata(sib.groupMetadata || null);
+          setNonNablPesticidePanel(sib.pesticidePanel || { enabled: false, panelType: null });
+        } else {
+          setNonNablParams(mapParams(j.parameters));
+          setNonNablShowSpecifications(!!j.showSpecifications);
+          setNonNablGroupMetadata(j.groupMetadata || null);
+          setNonNablPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
+          
+          setNablParams(mapParams(sib.parameters));
+          setNablShowSpecifications(!!sib.showSpecifications);
+          setNablGroupMetadata(sib.groupMetadata || null);
+          setNablPesticidePanel(sib.pesticidePanel || { enabled: false, panelType: null });
+        }
+      } catch (err) {
+        console.error('Failed to load sibling job for hybrid edit:', err);
+      }
+    } else {
+      // Non-hybrid fallback
+      setNablParams(mapParams(j.parameters));
+      setNablShowSpecifications(!!j.showSpecifications);
+      setNablGroupMetadata(j.groupMetadata || null);
+      setNablPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
+      
+      setNonNablParams(mapParams(j.parameters));
+      setNonNablShowSpecifications(!!j.showSpecifications);
+      setNonNablGroupMetadata(j.groupMetadata || null);
+      setNonNablPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
+    }
   };
 
-  const handleEditJob = (job) => {
-    populateFormFromJob(job);
+  const handleEditJob = async (job) => {
+    await populateFormFromJob(job);
     setEditingJobId(job._id);
 
     const isReturned =
@@ -635,7 +684,15 @@ export default function Jobs() {
         specification: p.specification || "",
       }));
 
+      let parametersForThisJob = parameters;
+      if (editingJobId && formData.nabl_mode === 'hybrid') {
+        const isEditingNabl = formData.nabl_type === 'Nabl';
+        parametersForThisJob = isEditingNabl ? nablParametersData : nonNablParametersData;
+      }
+
       const payload = {
+        assignUlrToNonNabl,
+        customUlrNumber: ulrEditMode && customUlrNumber ? parseInt(customUlrNumber, 10) : undefined,
         nablMode: formData.nabl_mode,
         customer: {
           customer_name: formData.customer_name,
@@ -675,7 +732,7 @@ export default function Jobs() {
           disclaimer_notes: formData.disclaimer_notes,
           special_handling_instructions: formData.special_handling_instructions,
         },
-        parameters,
+        parameters: parametersForThisJob,
         nablParameters: nablParametersData,
         nonNablParameters: nonNablParametersData,
         groupMetadata,
@@ -1886,57 +1943,99 @@ export default function Jobs() {
                           ))}
                         </div>
 
-                        {(formData.nabl_mode === "nabl" ||
-                          formData.nabl_mode === "hybrid") && (
-                            <div
-                              style={{
-                                marginBottom: "1.5rem",
-                                backgroundColor: "#eff6ff",
-                                padding: "1rem",
-                                borderRadius: "var(--radius-md)",
-                                border: "1px solid #bfdbfe",
-                              }}
-                            >
-                              <label
-                                style={{
-                                  display: "block",
-                                  marginBottom: "0.4rem",
-                                  fontWeight: 600,
-                                  fontSize: "0.9rem",
-                                  color: "#1e3a8a",
-                                }}
-                              >
-                                ULR Number {editingJobId ? '' : '(Auto-assigned)'}{" "}
-                                <span style={{ color: "var(--color-danger)" }}>
-                                  *
-                                </span>
-                              </label>
-                              <input
-                                value={editingJobId ? (formData.ulr_no || 'N/A') : ulrPreview}
-                                readOnly
-                                style={{
-                                  width: "100%",
-                                  backgroundColor: "transparent",
-                                  border: "1px solid #93c5fd",
-                                  color: "#1e40af",
-                                  fontWeight: 700,
-                                  letterSpacing: "0.05em",
-                                }}
-                              />
-                              {!editingJobId && (
-                                <div
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    color: "#3b82f6",
-                                    marginTop: "0.4rem",
-                                  }}
-                                >
-                                  This ULR will be officially assigned when the job
-                                  is submitted.
+                        {(() => {
+                          const ulrIsLocked = !!(editingJobId && formData.ulr_no && formData.ulr_no !== 'N/A');
+                          const isNonNablHybridSibling = !!(editingJobId && formData.jobCode?.includes('-N'));
+                          
+                          if (ulrIsLocked) {
+                            return (
+                              <div style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                                🔒 ULR Locked: <strong>{formData.ulr_no}</strong>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                  ULR can only be changed by an Admin Officer from the job detail view.
                                 </div>
-                              )}
-                            </div>
-                          )}
+                              </div>
+                            );
+                          }
+
+                          if (formData.nabl_mode === "nabl" || formData.nabl_mode === "hybrid") {
+                            return (
+                              <div style={{ marginBottom: "1.5rem", backgroundColor: "#eff6ff", padding: "1rem", borderRadius: "var(--radius-md)", border: "1px solid #bfdbfe" }}>
+                                <label style={{ display: "block", marginBottom: "0.4rem", fontWeight: 600, fontSize: "0.9rem", color: "#1e3a8a" }}>
+                                  ULR Number {editingJobId ? '' : '(Auto-assigned)'} <span style={{ color: "var(--color-danger)" }}>*</span>
+                                </label>
+                                <input value={editingJobId ? (formData.ulr_no || 'N/A') : ulrPreview} readOnly style={{ width: "100%", backgroundColor: "transparent", border: "1px solid #93c5fd", color: "#1e40af", fontWeight: 700, letterSpacing: "0.05em" }} />
+                                {!editingJobId && (
+                                  <div style={{ fontSize: "0.75rem", color: "#3b82f6", marginTop: "0.4rem" }}>
+                                    This ULR will be officially assigned when the job is submitted.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          if (formData.nabl_mode === "non_nabl") {
+                            return (
+                              <div style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isNonNablHybridSibling ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: isNonNablHybridSibling ? 0.5 : 1 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={assignUlrToNonNabl}
+                                    disabled={isNonNablHybridSibling}
+                                    onChange={e => {
+                                      setAssignUlrToNonNabl(e.target.checked);
+                                      if (!e.target.checked) { setUlrEditMode(false); setCustomUlrNumber(''); setUlrValidation({ valid: null, error: null, fullUlr: null }); }
+                                    }}
+                                  />
+                                  Assign ULR to this job
+                                </label>
+                                {isNonNablHybridSibling && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.4rem' }}>
+                                    ULR cannot be assigned to the Non-NABL half of a Hybrid job.
+                                  </div>
+                                )}
+                                {assignUlrToNonNabl && !ulrEditMode && (
+                                  <>
+                                    <input readOnly value={ulrPreview} style={{ width: '100%', marginTop: '0.75rem', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-hover)' }} />
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', marginTop: '0.4rem' }}>
+                                      ℹ️ This ULR will be officially assigned on save.
+                                    </div>
+                                  </>
+                                )}
+                                {assignUlrToNonNabl && ulrEditMode && (
+                                  <>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                      <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>TC-12434{new Date().getFullYear().toString().slice(2)}-</span>
+                                      <input
+                                        type="number"
+                                        value={customUlrNumber}
+                                        onChange={e => { setCustomUlrNumber(e.target.value); triggerUlrValidation(e.target.value); }}
+                                        placeholder="e.g. 25"
+                                        style={{ width: '100px', padding: '0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+                                      />
+                                    </div>
+                                    {ulrValidation.valid === true && (
+                                      <div style={{ color: 'var(--color-success)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
+                                        ✅ {ulrValidation.fullUlr} — available
+                                      </div>
+                                    )}
+                                    {ulrValidation.valid === false && (
+                                      <div style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
+                                        ❌ {ulrValidation.error}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                                {assignUlrToNonNabl && (
+                                  <button type="button" onClick={() => setUlrEditMode(m => !m)} style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                    {ulrEditMode ? '← Use auto-assign' : '✏️ Enter custom number'}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
 
                         <div
                           style={{
