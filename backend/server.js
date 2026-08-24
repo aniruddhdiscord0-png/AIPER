@@ -59,6 +59,22 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Request logger — logs every HTTP request
 app.use(requestLogger);
 
+// ── Health Check ──────────────────────────────────────────────────────────────
+// Used by Railway, UptimeRobot, or any external monitor to verify the server
+// and DB connection are both alive. Returns 200 when healthy, 503 when DB is down.
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  // readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+  const dbOk = dbState === 1;
+  const payload = {
+    status: dbOk ? 'ok' : 'degraded',
+    uptime: Math.floor(process.uptime()),
+    db: dbOk ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+  };
+  res.status(dbOk ? 200 : 503).json(payload);
+});
+
 // Routes
 app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/users', apiLimiter, require('./routes/userRoutes'));
