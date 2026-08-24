@@ -7,6 +7,7 @@ const { protect } = require('../../middlewares/authMiddleware');
 const { authorize } = require('../../middlewares/roleMiddleware');
 const { createNotification, notifyAdminOfficers, notifyAdmins } = require('../../utils/notifier');
 const { audit } = require('../../utils/auditLogger');
+const { getNextUlr } = require('../../utils/serialUtils');
 
 // ASSISTANT saves partial progress
 router.put('/instances/:id/save-progress', protect, authorize('ASSISTANT'), async (req, res) => {
@@ -137,6 +138,22 @@ router.put('/instances/:id/review', protect, authorize('HEAD'), async (req, res)
         if (job.distribution.chemical.required && (isDeptCompleted('chemical'))) {
           job.distribution.chemical.status = 'COMPLETED';
         }
+        
+        // Deferred ULR assignment: auto-assign when last required dept flips to COMPLETED
+        const isNablJob = job.sample?.nabl_type === 'Nabl';
+        const isFullyDone =
+          (!job.distribution.micro.required    || job.distribution.micro.status    === 'COMPLETED') &&
+          (!job.distribution.chemical.required || job.distribution.chemical.status === 'COMPLETED');
+        
+        if (isNablJob && isFullyDone && !job.sample?.ulr_no) {
+          job.sample.ulr_no = await getNextUlr();
+          job.history.push({
+            action: 'ULR_ASSIGNED',
+            by: req.user._id,
+            note: `ULR ${job.sample.ulr_no} auto-assigned on job completion`
+          });
+        }
+        
         await job.save({ validateBeforeSave: false });
 
       }

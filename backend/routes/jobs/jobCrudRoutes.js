@@ -196,7 +196,6 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
     let createdJobs = [];
 
     if (nablMode === 'hybrid') {
-      const ulr = await getNextUlr();
       const nablDist = getDistribution(nablParameters, nablPesticidePanel?.enabled);
       const nonNablDist = getDistribution(nonNablParameters, nonNablPesticidePanel?.enabled);
 
@@ -207,7 +206,7 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
         clientName: customer?.customer_name || '',
         totalSampleVolume: parseFloat(sample?.sample_quantity) || 0,
         customer,
-        sample: { ...sampleWithId, nabl_type: 'Nabl', ulr_no: ulr },
+        sample: { ...sampleWithId, nabl_type: 'Nabl', ulr_no: null },
         compliance,
         parameters: nablParameters,
         groupMetadata: nablGroupMetadata,
@@ -260,9 +259,24 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
       createdJobs = [nablJob, nonNablJob];
 
     } else {
-      // nabl or non_nabl
       const isNabl = nablMode === 'nabl';
-      const ulr = isNabl ? await getNextUlr() : null;
+      let ulr = null;
+      
+      if (!isNabl && req.body.assignUlrToNonNabl) {
+        if (req.body.customUlrNumber) {
+          const counter = await UlrCounter.findOne({});
+          const yy = String(new Date().getFullYear()).slice(2);
+          const numStr = String(req.body.customUlrNumber).padStart(8, '0');
+          ulr = `${counter?.prefix || 'TC-12434'}${yy}${numStr}`;
+          if (req.body.customUlrNumber === (counter?.currentValue || 0) + 1) {
+            await UlrCounter.findOneAndUpdate({}, { $inc: { currentValue: 1 } });
+          }
+        } else {
+          ulr = await getNextUlr();
+        }
+      }
+
+      const effectiveNablType = (isNabl || req.body.assignUlrToNonNabl) ? 'Nabl' : 'Non Nabl';
       const dist = getDistribution(parameters, pesticidePanel?.enabled);
 
       const job = await Job.create({
@@ -271,7 +285,7 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
         clientName: customer?.customer_name || '',
         totalSampleVolume: parseFloat(sample?.sample_quantity) || 0,
         customer,
-        sample: { ...sampleWithId, nabl_type: isNabl ? 'Nabl' : 'Non Nabl', ulr_no: ulr },
+        sample: { ...sampleWithId, nabl_type: effectiveNablType, ulr_no: ulr },
         compliance,
         parameters,
         groupMetadata,
@@ -362,11 +376,52 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
     const { customer, sample, compliance, parameters, groupMetadata, pesticidePanel, sampleFlow, assignedMicroHead, assignedChemicalHead, showSpecifications } = req.body;
 
     if (customer) job.customer = customer;
+    
+    // --- ULR Logic for PUT ---
+    // 1. Admin Officer Override / Validation
+    if (sample?.ulr_no && sample.ulr_no !== job.sample?.ulr_no) {
+      const newUlr = sample.ulr_no;
+      const counter = await UlrCounter.findOne({});
+      const yy = String(new Date().getFullYear()).slice(2);
+      const prefix = `${counter?.prefix || 'TC-12434'}${yy}`;
+      
+      if (!newUlr.startsWith(prefix)) return res.status(400).json({ message: 'ULR format invalid for current year.' });
+      
+      const numericPart = parseInt(newUlr.slice(prefix.length), 10);
+      const currentMax = counter?.currentValue || 0;
+      
+      if (numericPart > currentMax + 1) return res.status(400).json({ message: 'ULR not in sequence.' });
+      
+      const existing = await Job.findOne({ 'sample.ulr_no': newUlr, _id: { $ne: job._id } }, { jobCode: 1 });
+      if (existing) return res.status(400).json({ message: `ULR already assigned to job ${existing.jobCode}.` });
+      
+      if (numericPart === currentMax + 1) await UlrCounter.findOneAndUpdate({}, { $inc: { currentValue: 1 } });
+    }
+    
+    // 2. Retroactive Non-NABL Opt-In
+    let retroactiveUlr = job.sample?.ulr_no;
+    let retroactiveNablType = job.sample?.nabl_type;
+    
+    if (job.sample?.nabl_type === 'Non Nabl' && req.body.assignUlrToNonNabl && !job.sample?.ulr_no) {
+      retroactiveNablType = 'Nabl';
+      if (req.body.customUlrNumber) {
+        const counter = await UlrCounter.findOne({});
+        const yy = String(new Date().getFullYear()).slice(2);
+        const numStr = String(req.body.customUlrNumber).padStart(8, '0');
+        retroactiveUlr = `${counter?.prefix || 'TC-12434'}${yy}${numStr}`;
+        if (req.body.customUlrNumber === (counter?.currentValue || 0) + 1) {
+          await UlrCounter.findOneAndUpdate({}, { $inc: { currentValue: 1 } });
+        }
+      } else {
+        retroactiveUlr = await getNextUlr();
+      }
+    }
+
     if (sample) {
       job.sample = {
         ...sample,
-        nabl_type: job.sample?.nabl_type,
-        ulr_no: job.sample?.ulr_no
+        nabl_type: retroactiveNablType,
+        ulr_no: sample.ulr_no || retroactiveUlr // custom override takes precedence if both provided
       };
     }
     if (compliance) job.compliance = compliance;
@@ -533,6 +588,41 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
         by: req.user._id,
         note: isResubmitted ? 'Job resubmitted by Admin Officer after corrections' : 'Job updated by Admin Officer'
       });
+    }
+
+    // Hybrid sibling sync: propagate customer/sample-metadata/compliance and update sibling's own params
+    const { nablMode, nablParameters, nonNablParameters, nablGroupMetadata, nonNablGroupMetadata,
+            nablPesticidePanel, nonNablPesticidePanel, nablShowSpecifications, nonNablShowSpecifications } = req.body;
+    
+    if (nablMode === 'hybrid' && job.siblingJobId) {
+      const sibling = await Job.findById(job.siblingJobId);
+      if (sibling) {
+        if (customer) { sibling.customer = customer; sibling.clientName = customer.customer_name || sibling.clientName; }
+        if (sample) {
+          sibling.sample = {
+            ...sample,
+            nabl_type: sibling.sample?.nabl_type,
+            ulr_no: sibling.sample?.ulr_no
+          };
+        }
+        if (compliance) sibling.compliance = compliance;
+    
+        const isCurrentJobNabl = job.sample?.nabl_type === 'Nabl';
+        const siblingParams    = isCurrentJobNabl ? nonNablParameters : nablParameters;
+        const siblingGroupMeta = isCurrentJobNabl ? nonNablGroupMetadata : nablGroupMetadata;
+        const siblingPesticide = isCurrentJobNabl ? nonNablPesticidePanel : nablPesticidePanel;
+        const siblingShowSpecs = isCurrentJobNabl ? nonNablShowSpecifications : nablShowSpecifications;
+    
+        if (siblingParams) {
+          sibling.parameters = siblingParams;
+          if (siblingGroupMeta !== undefined) sibling.groupMetadata = siblingGroupMeta;
+          if (siblingPesticide) sibling.pesticidePanel = siblingPesticide;
+          if (siblingShowSpecs !== undefined) sibling.showSpecifications = siblingShowSpecs;
+        }
+    
+        sibling.history.push({ action: 'UPDATED', by: req.user._id, note: 'Synced from sibling job edit' });
+        await sibling.save({ validateBeforeSave: false });
+      }
     }
 
     await job.save();

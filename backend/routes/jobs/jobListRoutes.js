@@ -6,6 +6,47 @@ const SampleTransfer = require('../../models/SampleTransfer');
 const { protect } = require('../../middlewares/authMiddleware');
 const { cacheMiddleware } = require('../../utils/serverCache');
 
+// GET /api/jobs/validate-ulr?number=26
+// Validates a custom ULR counter number: checks duplicate + sequencing rules
+router.get('/validate-ulr', protect, async (req, res) => {
+  try {
+    const { authorize } = require('../../middlewares/roleMiddleware');
+    if (req.user.role !== 'ADMIN_OFFICER' && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ valid: false, error: 'Forbidden', existingJobCode: null });
+    }
+
+    const UlrCounter = require('../../models/UlrCounter');
+    const requestedNum = parseInt(req.query.number, 10);
+
+    if (isNaN(requestedNum) || requestedNum < 1) {
+      return res.json({ valid: false, error: 'Must be a positive integer', existingJobCode: null });
+    }
+
+    const counter = await UlrCounter.findOne({});
+    const currentMax = counter?.currentValue || 0;
+
+    // Rule: must be <= currentMax (gap fill) or exactly currentMax + 1 (next in sequence)
+    if (requestedNum > currentMax + 1) {
+      return res.json({ valid: false, error: 'ULR not in sequence', existingJobCode: null });
+    }
+
+    // Build the full ULR string
+    const yy = String(new Date().getFullYear()).slice(2);
+    const numStr = String(requestedNum).padStart(8, '0');
+    const fullUlr = `${counter?.prefix || 'TC-12434'}${yy}${numStr}`;
+
+    // Check for duplicates
+    const existing = await Job.findOne({ 'sample.ulr_no': fullUlr }, { jobCode: 1 });
+    if (existing) {
+      return res.json({ valid: false, error: 'Already assigned to another job', existingJobCode: existing.jobCode });
+    }
+
+    return res.json({ valid: true, error: null, existingJobCode: null, fullUlr });
+  } catch (err) {
+    res.status(500).json({ valid: false, error: 'Server error', existingJobCode: null });
+  }
+});
+
 // Get high-level stats for the dashboard
 router.get('/stats', protect, cacheMiddleware('jobs_stats'), async (req, res) => {
   try {
