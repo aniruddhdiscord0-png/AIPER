@@ -13,7 +13,7 @@ const { authLimiter, apiLimiter } = require('./middlewares/rateLimiter');
 const envLocalPath = path.join(__dirname, '.env.local');
 if (fs.existsSync(envLocalPath)) {
   dotenv.config({ path: envLocalPath });
-  console.log('🔧 Using LOCAL dev environment (.env.local)');
+  console.log('Using LOCAL dev environment (.env.local)');
 } else {
   dotenv.config();
 }
@@ -27,7 +27,7 @@ const server = http.createServer(app);
 
 const allowedOrigin = process.env.FRONTEND_URL;
 if (!allowedOrigin) {
-  console.warn('⚠️  WARNING: FRONTEND_URL is not set in environment variables. Falling back to "*" for CORS. Do not use this in production!');
+  console.warn('WARNING: FRONTEND_URL is not set in environment variables. Falling back to "*" for CORS. Do not use this in production!');
 }
 const corsOrigin = allowedOrigin || '*';
 const io = new Server(server, {

@@ -679,4 +679,21 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
   }
 });
 
+// Get a single job by ID (used for sibling job fetching in hybrid editing)
+router.get('/:id', protect, async (req, res, next) => {
+  try {
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return next(); // Fall through to other routes if not a valid ObjectId (e.g. next-ulr)
+    }
+    const job = await Job.findById(req.params.id)
+      .populate('parameters.parameterId', 'name unit type _id');
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    res.json(job);
+  } catch (err) {
+    console.error('Error fetching job by ID:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

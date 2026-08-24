@@ -76,7 +76,7 @@ const CascadingParameterSelector = ({
         setGlobalParameters(fresh);
 
         // Sync live specification into already-selected params so the
-        // "✓ Edit" indicator and dispatch payload always reflect Data Settings.
+        // "Edit" indicator and dispatch payload always reflect Data Settings.
         const specMap = {};
         fresh.forEach(p => { specMap[p._id?.toString()] = p.specification || ''; });
         setSelectedParams(prev =>
@@ -632,7 +632,7 @@ const CascadingParameterSelector = ({
                                 display: 'inline-block'
                               }}
                             >
-                              {p.specification ? '✓ Edit' : 'Set Spec'}
+                              {p.specification ? 'Edit' : 'Set Spec'}
                             </button>
                           )}
                         </td>
@@ -774,9 +774,6 @@ const CascadingParameterSelector = ({
                   transition: 'color 0.2s ease',
                 }}>
                   Include specifications in the report
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  {showSpecifications ? 'Specification column will appear in the report' : 'No specification column in the report'}
                 </span>
               </div>
             </div>

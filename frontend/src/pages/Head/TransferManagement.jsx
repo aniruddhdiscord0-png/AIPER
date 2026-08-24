@@ -208,7 +208,7 @@ export default function TransferManagement() {
                             marginBottom: "0.3rem",
                           }}
                         >
-                          📦 Sample from{" "}
+                          Sample from{" "}
                           {transfer.fromDepartment === "micro"
                             ? "Micro"
                             : "Chemical"}{" "}
@@ -307,7 +307,7 @@ export default function TransferManagement() {
                             marginBottom: "0.3rem",
                           }}
                         >
-                          🔄 Hand Over to {secondDept} Department
+                          Hand Over to {secondDept} Department
                         </div>
                         <div
                           style={{

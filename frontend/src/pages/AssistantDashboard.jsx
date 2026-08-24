@@ -122,6 +122,7 @@ export default function AssistantDashboard() {
     const updateTasks = () => { invalidateCache(CACHE_KEYS.MY_TASKS); fetchTasks(); };
 
     socket.on('JOB_DISTRIBUTED', updateTasks);
+    socket.on('TEST_SUBMITTED', updateTasks);
     socket.on('TEST_REVIEWED', updateTasks);
     socket.on('JOB_UPDATED', updateTasks);
     socket.on('JOB_DELETED', updateTasks);
@@ -138,6 +139,7 @@ export default function AssistantDashboard() {
 
     return () => {
       socket.off('JOB_DISTRIBUTED', updateTasks);
+      socket.off('TEST_SUBMITTED', updateTasks);
       socket.off('TEST_REVIEWED', updateTasks);
       socket.off('JOB_UPDATED', updateTasks);
       socket.off('JOB_DELETED', updateTasks);
@@ -575,7 +577,7 @@ export default function AssistantDashboard() {
                           <div style={{ fontWeight: 600, color: 'var(--color-text-main)', fontSize: '0.95rem' }}>{i + 1}. {resItem.name}</div>
                           {prevResult?.value && (
                             <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginTop: '0.25rem', fontStyle: 'italic' }}>
-                              ⚠ Previous (rejected): {prevResult.value} {prevResult.unit}
+                              Previous (rejected): {prevResult.value} {prevResult.unit}
                             </div>
                           )}
                         </div>

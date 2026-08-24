@@ -47,6 +47,25 @@ router.get('/validate-ulr', protect, async (req, res) => {
   }
 });
 
+// GET /api/jobs/recent-ulrs
+// Returns last 5 assigned ULR numbers (for convenience display in the ULR assignment UI)
+router.get('/recent-ulrs', protect, async (req, res) => {
+  try {
+    const jobs = await Job.find(
+      { 'sample.ulr_no': { $ne: null, $exists: true, $gt: '' } },
+      { 'sample.ulr_no': 1, jobCode: 1 }
+    ).sort({ updatedAt: -1 }).limit(5);
+
+    const result = jobs.map(j => ({
+      ulr: j.sample.ulr_no,
+      jobCode: j.jobCode,
+    }));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get high-level stats for the dashboard
 router.get('/stats', protect, cacheMiddleware('jobs_stats'), async (req, res) => {
   try {

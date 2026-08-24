@@ -22,7 +22,7 @@ async function sendBugReportEmail(report, reporter) {
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
       <div style="background: ${isBug ? '#dc2626' : '#f59e0b'}; padding: 24px 32px;">
         <h1 style="margin: 0; color: white; font-size: 20px;">
-          ${isBug ? '🐛 New Bug Report' : '💡 Feature Request'}
+          ${isBug ? 'New Bug Report' : 'Feature Request'}
         </h1>
       </div>
       <div style="padding: 32px;">
@@ -81,9 +81,9 @@ async function sendBugReportEmail(report, reporter) {
         'accept': 'application/json'
       }
     });
-    console.log('✅ Bug report email sent successfully.');
+    console.log('Bug report email sent successfully.');
   } catch (err) {
-    console.error('❌ Failed to send bug report email:', err.response?.data || err.message);
+    console.error('Failed to send bug report email:', err.response?.data || err.message);
   }
 }
 
@@ -108,7 +108,7 @@ async function sendOtpEmail(recipientEmail, recipientName, otpCode) {
           <span style="font-size: 36px; font-weight: 800; letter-spacing: 12px; color: #1e40af; font-family: 'Courier New', monospace;">${otpCode}</span>
         </div>
 
-        <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin: 0 0 8px;">⏱ This code expires in 5 minutes.</p>
+        <p style="font-size: 13px; color: #ef4444; font-weight: 600; margin: 0 0 8px;">This code expires in 5 minutes.</p>
         <p style="font-size: 13px; color: #9ca3af; margin: 0;">If you did not request this, please ignore this email.</p>
       </div>
     </div>
@@ -127,9 +127,9 @@ async function sendOtpEmail(recipientEmail, recipientName, otpCode) {
         'accept': 'application/json'
       }
     });
-    console.log(`✅ OTP email sent to ${recipientEmail}`);
+    console.log(`OTP email sent to ${recipientEmail}`);
   } catch (err) {
-    console.error('❌ Failed to send OTP email:', err.response?.data || err.message);
+    console.error('Failed to send OTP email:', err.response?.data || err.message);
     throw new Error('Failed to send OTP email');
   }
 }

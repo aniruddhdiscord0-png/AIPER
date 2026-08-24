@@ -82,7 +82,7 @@ export default function ReportModal({ job, onClose }) {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.docx')) {
       alert('Only .docx files are allowed.');
       return;
@@ -95,7 +95,7 @@ export default function ReportModal({ job, onClose }) {
     try {
       const token = localStorage.getItem('token');
       await axios.post(`${API_URL}/api/export/report/${job._id}/upload?type=${reportType}`, formData, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
@@ -112,7 +112,7 @@ export default function ReportModal({ job, onClose }) {
 
   const handleRevert = async () => {
     if (!window.confirm('Are you sure you want to revert to the auto-generated report? This will permanently delete the custom uploaded report.')) return;
-    
+
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -137,13 +137,13 @@ export default function ReportModal({ job, onClose }) {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
-      
+
       {/* Hidden File Input */}
       <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileChange} />
 
       {/* Top Bar */}
       <div style={{ backgroundColor: 'white', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', flexWrap: 'wrap', gap: '1rem' }}>
-        
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button onClick={onClose} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={18} />
@@ -173,7 +173,7 @@ export default function ReportModal({ job, onClose }) {
           <button onClick={handleDownload} disabled={!blob || !siblingComplete} style={{ padding: '0.6rem 1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: (blob && siblingComplete) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, opacity: (blob && siblingComplete) ? 1 : 0.6 }}>
             <Download size={16} /> Download DOCX
           </button>
-          
+
           <button onClick={handleUploadClick} disabled={uploading} style={{ padding: '0.6rem 1rem', background: 'white', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             <UploadCloud size={16} /> {uploading ? 'Uploading...' : 'Upload Custom'}
           </button>
@@ -197,7 +197,7 @@ export default function ReportModal({ job, onClose }) {
               )}
             </div>
           </div>
-          
+
           {status.isCustom && (
             <button onClick={handleRevert} style={{ padding: '0.4rem 0.8rem', background: 'white', color: '#DC2626', border: '1px solid #FECACA', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600 }}>
               <RotateCcw size={14} /> Revert to Original
@@ -210,7 +210,9 @@ export default function ReportModal({ job, onClose }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
         {!siblingComplete ? (
           <div style={{ marginTop: '10vh', textAlign: 'center', maxWidth: '480px', backgroundColor: 'var(--color-surface)', padding: '2rem', borderRadius: 'var(--radius-lg)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+            <div style={{ marginBottom: '1rem', color: 'var(--color-primary)', display: 'flex', justifyContent: 'center' }}>
+              <Clock size={48} />
+            </div>
             <h3 style={{ color: 'var(--color-text-main)', marginBottom: '0.75rem' }}>
               Report Not Ready Yet
             </h3>
@@ -220,7 +222,7 @@ export default function ReportModal({ job, onClose }) {
               also been fully completed and approved by the Department Head.
             </p>
             <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', backgroundColor: 'var(--color-surface-hover)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              💡 Both jobs must be complete to ensure the ULR number is assigned in the correct sequence.
+              Note: Both jobs must be complete to ensure the ULR number is assigned in the correct sequence.
             </div>
           </div>
         ) : loading ? (

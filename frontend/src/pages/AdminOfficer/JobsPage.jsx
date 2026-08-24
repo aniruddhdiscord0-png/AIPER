@@ -120,6 +120,7 @@ export default function Jobs() {
   const [ulrEditMode, setUlrEditMode] = useState(false);
   const [customUlrNumber, setCustomUlrNumber] = useState('');
   const [ulrValidation, setUlrValidation] = useState({ valid: null, error: null, fullUlr: null });
+  const [recentUlrs, setRecentUlrs] = useState([]);
 
   // Fix 2: Shared group data — fetched once, passed to all CascadingParameterSelector instances
   const [allGroupData, setAllGroupData] = useState(null);
@@ -495,8 +496,6 @@ export default function Jobs() {
     setGroupMetadata(j.groupMetadata || null);
     setPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
 
-    setShowForm(true);
-    setSections({ customer: true, sample: true, compliance: true });
 
     if (j.siblingJobId) {
       try {
@@ -540,6 +539,9 @@ export default function Jobs() {
       setNonNablGroupMetadata(j.groupMetadata || null);
       setNonNablPesticidePanel(j.pesticidePanel || { enabled: false, panelType: null });
     }
+
+    setShowForm(true);
+    setSections({ customer: true, sample: true, compliance: true });
   };
 
   const handleEditJob = async (job) => {
@@ -1735,7 +1737,7 @@ export default function Jobs() {
                               gap: "0.3rem",
                             }}
                           >
-                            📅 Job code will use date{" "}
+                            Job code will use date{" "}
                             <strong>{customCreationDate}</strong> instead of today.
                           </div>
                         )}
@@ -1950,10 +1952,7 @@ export default function Jobs() {
                           if (ulrIsLocked) {
                             return (
                               <div style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                                🔒 ULR Locked: <strong>{formData.ulr_no}</strong>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                                  ULR can only be changed by an Admin Officer from the job detail view.
-                                </div>
+                                ULR Locked: <strong>{formData.ulr_no}</strong>
                               </div>
                             );
                           }
@@ -1974,62 +1973,229 @@ export default function Jobs() {
                             );
                           }
 
-                          if (formData.nabl_mode === "non_nabl") {
+                          if (formData.nabl_mode === "non_nabl" && editingJobId) {
+                            const ulrPrefix = `TC-12434`;
+                            const ulrYear = new Date().getFullYear().toString().slice(2);
                             return (
-                              <div style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isNonNablHybridSibling ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: isNonNablHybridSibling ? 0.5 : 1 }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={assignUlrToNonNabl}
-                                    disabled={isNonNablHybridSibling}
-                                    onChange={e => {
-                                      setAssignUlrToNonNabl(e.target.checked);
-                                      if (!e.target.checked) { setUlrEditMode(false); setCustomUlrNumber(''); setUlrValidation({ valid: null, error: null, fullUlr: null }); }
-                                    }}
-                                  />
-                                  Assign ULR to this job
-                                </label>
+                              <div
+                                onClick={() => {
+                                  if (isNonNablHybridSibling) return;
+                                  const newVal = !assignUlrToNonNabl;
+                                  setAssignUlrToNonNabl(newVal);
+                                  if (!newVal) {
+                                    setUlrEditMode(false);
+                                    setCustomUlrNumber('');
+                                    setUlrValidation({ valid: null, error: null, fullUlr: null });
+                                  }
+                                }}
+                                style={{
+                                  marginBottom: '1.5rem',
+                                  padding: '1.25rem 1.5rem',
+                                  borderRadius: 'var(--radius-md)',
+                                  backgroundColor: assignUlrToNonNabl ? 'rgba(59, 130, 246, 0.04)' : 'var(--color-surface)',
+                                  border: assignUlrToNonNabl ? '2px solid var(--color-primary)' : '2px solid var(--color-border)',
+                                  cursor: isNonNablHybridSibling ? 'not-allowed' : 'pointer',
+                                  opacity: isNonNablHybridSibling ? 0.5 : 1,
+                                  boxShadow: assignUlrToNonNabl ? '0 0 0 4px rgba(59, 130, 246, 0.1)' : 'none',
+                                  transition: 'all 0.2s ease-in-out',
+                                }}
+                              >
+                                {/* Header Row */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: assignUlrToNonNabl ? '1rem' : '0' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{
+                                      width: '8px', height: '8px', borderRadius: '50%',
+                                      backgroundColor: assignUlrToNonNabl ? 'var(--color-primary)' : 'var(--color-border)',
+                                      transition: 'background-color 0.2s',
+                                      flexShrink: 0,
+                                    }} />
+                                    <span style={{ fontWeight: 600, color: assignUlrToNonNabl ? 'var(--color-primary)' : 'var(--color-text-main)', fontSize: '0.95rem' }}>
+                                      Assign ULR to this job
+                                    </span>
+                                  </div>
+                                  {assignUlrToNonNabl && (
+                                    <span style={{
+                                      fontSize: '0.75rem', fontWeight: 600,
+                                      color: 'var(--color-primary)',
+                                      backgroundColor: 'rgba(59,130,246,0.1)',
+                                      padding: '0.2rem 0.6rem',
+                                      borderRadius: '999px',
+                                      letterSpacing: '0.04em',
+                                    }}>
+                                      ACTIVE
+                                    </span>
+                                  )}
+                                </div>
+
                                 {isNonNablHybridSibling && (
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.4rem' }}>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
                                     ULR cannot be assigned to the Non-NABL half of a Hybrid job.
                                   </div>
                                 )}
-                                {assignUlrToNonNabl && !ulrEditMode && (
-                                  <>
-                                    <input readOnly value={ulrPreview} style={{ width: '100%', marginTop: '0.75rem', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-hover)' }} />
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', marginTop: '0.4rem' }}>
-                                      ℹ️ This ULR will be officially assigned on save.
-                                    </div>
-                                  </>
-                                )}
-                                {assignUlrToNonNabl && ulrEditMode && (
-                                  <>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                                      <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>TC-12434{new Date().getFullYear().toString().slice(2)}-</span>
-                                      <input
-                                        type="number"
-                                        value={customUlrNumber}
-                                        onChange={e => { setCustomUlrNumber(e.target.value); triggerUlrValidation(e.target.value); }}
-                                        placeholder="e.g. 25"
-                                        style={{ width: '100px', padding: '0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
-                                      />
-                                    </div>
-                                    {ulrValidation.valid === true && (
-                                      <div style={{ color: 'var(--color-success)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
-                                        ✅ {ulrValidation.fullUlr} — available
-                                      </div>
-                                    )}
-                                    {ulrValidation.valid === false && (
-                                      <div style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
-                                        ❌ {ulrValidation.error}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
+
                                 {assignUlrToNonNabl && (
-                                  <button type="button" onClick={() => setUlrEditMode(m => !m)} style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                                    {ulrEditMode ? '← Use auto-assign' : '✏️ Enter custom number'}
-                                  </button>
+                                  <div onClick={(e) => e.stopPropagation()}>
+
+                                    {/* Mode Toggle Pills */}
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => { setUlrEditMode(false); setCustomUlrNumber(''); setUlrValidation({ valid: null, error: null, fullUlr: null }); }}
+                                        style={{
+                                          padding: '0.3rem 0.9rem',
+                                          borderRadius: '999px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 600,
+                                          border: !ulrEditMode ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                                          backgroundColor: !ulrEditMode ? 'var(--color-primary)' : 'transparent',
+                                          color: !ulrEditMode ? '#fff' : 'var(--color-text-muted)',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s',
+                                        }}
+                                      >
+                                        Auto-assign
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setUlrEditMode(true);
+                                          // Fetch recent ULRs for reference
+                                          axios.get(`${API_URL}/api/jobs/recent-ulrs`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+                                            .then(r => setRecentUlrs(r.data))
+                                            .catch(() => {});
+                                        }}
+                                        style={{
+                                          padding: '0.3rem 0.9rem',
+                                          borderRadius: '999px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 600,
+                                          border: ulrEditMode ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                                          backgroundColor: ulrEditMode ? 'var(--color-primary)' : 'transparent',
+                                          color: ulrEditMode ? '#fff' : 'var(--color-text-muted)',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s',
+                                        }}
+                                      >
+                                        Custom number
+                                      </button>
+                                    </div>
+
+                                    {/* Auto-assign mode */}
+                                    {!ulrEditMode && (
+                                      <div>
+                                        <div style={{
+                                          display: 'inline-flex', alignItems: 'center',
+                                          backgroundColor: '#eff6ff',
+                                          border: '1px solid #bfdbfe',
+                                          borderRadius: 'var(--radius-sm)',
+                                          padding: '0.5rem 0.9rem',
+                                          fontFamily: 'monospace',
+                                          fontSize: '1rem',
+                                          fontWeight: 700,
+                                          color: '#1e40af',
+                                          letterSpacing: '0.04em',
+                                        }}>
+                                          {ulrPreview || '—'}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+                                          Next in sequence. Officially assigned on save.
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Custom number mode */}
+                                    {ulrEditMode && (
+                                      <div>
+                                        {/* Segmented ULR input */}
+                                        <div style={{
+                                          display: 'inline-flex', alignItems: 'center',
+                                          border: ulrValidation.valid === false ? '1.5px solid var(--color-danger)' : ulrValidation.valid === true ? '1.5px solid var(--color-success)' : '1.5px solid var(--color-border)',
+                                          borderRadius: 'var(--radius-sm)',
+                                          overflow: 'hidden',
+                                          fontFamily: 'monospace',
+                                          fontSize: '0.95rem',
+                                          transition: 'border-color 0.2s',
+                                        }}>
+                                          <span style={{
+                                            padding: '0.5rem 0.75rem',
+                                            backgroundColor: 'var(--color-surface-hover)',
+                                            color: 'var(--color-text-muted)',
+                                            fontWeight: 500,
+                                            borderRight: '1px solid var(--color-border)',
+                                            whiteSpace: 'nowrap',
+                                            userSelect: 'none',
+                                          }}>
+                                            {ulrPrefix}{ulrYear}
+                                          </span>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            value={customUlrNumber}
+                                            onChange={e => { setCustomUlrNumber(e.target.value); triggerUlrValidation(e.target.value); }}
+                                            placeholder="e.g. 25"
+                                            style={{
+                                              width: '100px',
+                                              padding: '0.5rem 0.6rem',
+                                              border: 'none',
+                                              outline: 'none',
+                                              fontSize: '0.95rem',
+                                              fontFamily: 'monospace',
+                                              fontWeight: 600,
+                                              background: 'transparent',
+                                              color: 'var(--color-text-main)',
+                                            }}
+                                          />
+                                        </div>
+
+                                        {/* Validation feedback */}
+                                        {ulrValidation.valid === true && (
+                                          <div style={{ fontSize: '0.82rem', color: 'var(--color-success)', marginTop: '0.4rem', fontWeight: 500 }}>
+                                            {ulrValidation.fullUlr} available
+                                          </div>
+                                        )}
+                                        {ulrValidation.valid === false && (
+                                          <div style={{ fontSize: '0.82rem', color: 'var(--color-danger)', marginTop: '0.4rem', fontWeight: 500 }}>
+                                            {ulrValidation.error}
+                                          </div>
+                                        )}
+
+                                        {/* Recent ULRs for reference */}
+                                        {recentUlrs.length > 0 && (
+                                          <div style={{ marginTop: '0.75rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem', fontWeight: 500 }}>Recent ULRs:</div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                              {recentUlrs.map((r) => {
+                                                // Extract the 8-digit sequence number (everything after the 2-digit year)
+                                                const seqNum = parseInt(r.ulr.slice(-8), 10);
+                                                return (
+                                                  <button
+                                                    key={r.ulr}
+                                                    type="button"
+                                                    title={`Job ${r.jobCode}`}
+                                                    onClick={() => { setCustomUlrNumber(String(seqNum)); triggerUlrValidation(String(seqNum)); }}
+                                                    style={{
+                                                      fontFamily: 'monospace',
+                                                      fontSize: '0.78rem',
+                                                      padding: '0.25rem 0.6rem',
+                                                      borderRadius: '999px',
+                                                      border: '1px solid var(--color-border)',
+                                                      background: 'var(--color-surface-hover)',
+                                                      color: 'var(--color-text-main)',
+                                                      cursor: 'pointer',
+                                                      transition: 'border-color 0.15s',
+                                                    }}
+                                                  >
+                                                    {r.ulr}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                  </div>
                                 )}
                               </div>
                             );
@@ -2587,7 +2753,7 @@ export default function Jobs() {
                       }}
                     >
                       <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--color-warning)", marginBottom: "0.6rem" }}>
-                        ⚠ The following parameters will be modified:
+                        The following parameters will be modified:
                       </div>
                       {addedParams.length > 0 && (
                         <div style={{ marginBottom: "0.4rem", fontSize: "0.85rem" }}>

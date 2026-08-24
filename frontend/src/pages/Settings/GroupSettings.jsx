@@ -1235,7 +1235,7 @@ export default function GroupSettings() {
                             display: "inline-block",
                           }}
                         >
-                          {p.specification ? "✓ Edit" : "Set Spec"}
+                          {p.specification ? "Edit" : "Set Spec"}
                         </button>
                       </td>
                       <td

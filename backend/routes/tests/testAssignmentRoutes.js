@@ -161,6 +161,7 @@ router.post('/instances', protect, authorize('HEAD'), async (req, res) => {
         testCode,
         clientName,
         deadline,
+        department: dept,
         assignedTo: astId,
         results: params,
         createdBy: req.user._id,

@@ -126,6 +126,8 @@ export default function Dispatcher() {
       socket.off("JOB_DELETED", updateBoth);
       socket.off("JOB_RETEST_INITIATED", updateBoth);
       socket.off("TRANSFER_RECEIVED", updateBoth);
+      socket.off("TEST_SUBMITTED", updateBoth);
+      socket.off("TEST_REVIEWED", updateBoth);
     };
   }, [socket, user]);
 

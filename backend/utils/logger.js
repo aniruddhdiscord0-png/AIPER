@@ -17,7 +17,7 @@ const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, event, msg, user, request }) => {
     const levelUp = level.toUpperCase();
-    const icon = levelUp === 'ERROR' ? '✗' : levelUp === 'WARN' ? '⚠' : '→';
+    const icon = levelUp === 'ERROR' ? 'X' : levelUp === 'WARN' ? '!' : '->';
     const userStr = user?.name ? ` [${user.name}]` : '';
     const statusStr = request?.statusCode ? ` ${request.statusCode}` : '';
     const timeStr = request?.responseTimeMs ? ` ${request.responseTimeMs}ms` : '';
