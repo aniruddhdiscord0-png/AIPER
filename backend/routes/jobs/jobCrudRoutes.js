@@ -260,23 +260,34 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
 
     } else {
       const isNabl = nablMode === 'nabl';
-      let ulr = null;
-      
+      let reservedSlot = null;
+      let reservedYear = null;
+
       if (!isNabl && req.body.assignUlrToNonNabl) {
+        const yy = String(new Date().getFullYear()).slice(2);
         if (req.body.customUlrNumber) {
+          // Custom entry: validate sequencing then reserve the slot
+          const requestedNum = parseInt(req.body.customUlrNumber, 10);
           const counter = await UlrCounter.findOne({});
-          const yy = String(new Date().getFullYear()).slice(2);
-          const numStr = String(req.body.customUlrNumber).padStart(8, '0');
-          ulr = `${counter?.prefix || 'TC-12434'}${yy}${numStr}`;
-          if (req.body.customUlrNumber === (counter?.currentValue || 0) + 1) {
+          const currentMax = counter?.currentValue || 0;
+          if (requestedNum === currentMax + 1) {
+            // Advancing the counter: increment so the slot is claimed
             await UlrCounter.findOneAndUpdate({}, { $inc: { currentValue: 1 } });
           }
+          reservedSlot = requestedNum;
         } else {
-          ulr = await getNextUlr();
+          // Auto: increment counter and reserve that value
+          const counter = await UlrCounter.findOneAndUpdate(
+            {},
+            { $inc: { currentValue: 1 }, $set: { lastYear: yy } },
+            { new: true, upsert: true }
+          );
+          reservedSlot = counter.currentValue;
         }
+        reservedYear = yy;
       }
 
-      const effectiveNablType = (isNabl || req.body.assignUlrToNonNabl) ? 'Nabl' : 'Non Nabl';
+      const effectiveNablType = isNabl ? 'Nabl' : 'Non Nabl';
       const dist = getDistribution(parameters, pesticidePanel?.enabled);
 
       const job = await Job.create({
@@ -285,7 +296,9 @@ router.post('/', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
         clientName: customer?.customer_name || '',
         totalSampleVolume: parseFloat(sample?.sample_quantity) || 0,
         customer,
-        sample: { ...sampleWithId, nabl_type: effectiveNablType, ulr_no: ulr },
+        sample: { ...sampleWithId, nabl_type: effectiveNablType, ulr_no: null },
+        reservedUlrSlot: reservedSlot,
+        reservedUlrYear: reservedYear,
         compliance,
         parameters,
         groupMetadata,
@@ -398,30 +411,34 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
       if (numericPart === currentMax + 1) await UlrCounter.findOneAndUpdate({}, { $inc: { currentValue: 1 } });
     }
     
-    // 2. Retroactive Non-NABL Opt-In
-    let retroactiveUlr = job.sample?.ulr_no;
-    let retroactiveNablType = job.sample?.nabl_type;
-    
-    if (job.sample?.nabl_type === 'Non Nabl' && req.body.assignUlrToNonNabl && !job.sample?.ulr_no) {
-      retroactiveNablType = 'Nabl';
+    // 2. Retroactive Non-NABL Opt-In (deferred — writes reservation, not final ULR)
+    if (job.sample?.nabl_type === 'Non Nabl' && req.body.assignUlrToNonNabl && !job.sample?.ulr_no && job.reservedUlrSlot == null) {
+      const yy = String(new Date().getFullYear()).slice(2);
       if (req.body.customUlrNumber) {
+        const requestedNum = parseInt(req.body.customUlrNumber, 10);
         const counter = await UlrCounter.findOne({});
-        const yy = String(new Date().getFullYear()).slice(2);
-        const numStr = String(req.body.customUlrNumber).padStart(8, '0');
-        retroactiveUlr = `${counter?.prefix || 'TC-12434'}${yy}${numStr}`;
-        if (req.body.customUlrNumber === (counter?.currentValue || 0) + 1) {
+        const currentMax = counter?.currentValue || 0;
+        if (requestedNum === currentMax + 1) {
           await UlrCounter.findOneAndUpdate({}, { $inc: { currentValue: 1 } });
         }
+        job.reservedUlrSlot = requestedNum;
       } else {
-        retroactiveUlr = await getNextUlr();
+        const counter = await UlrCounter.findOneAndUpdate(
+          {},
+          { $inc: { currentValue: 1 }, $set: { lastYear: yy } },
+          { new: true, upsert: true }
+        );
+        job.reservedUlrSlot = counter.currentValue;
       }
+      job.reservedUlrYear = yy;
+      // nabl_type intentionally stays 'Non Nabl'; eligibility is driven by reservedUlrSlot
     }
 
     if (sample) {
       job.sample = {
         ...sample,
-        nabl_type: retroactiveNablType,
-        ulr_no: sample.ulr_no || retroactiveUlr // custom override takes precedence if both provided
+        nabl_type: job.sample?.nabl_type, // preserve existing type
+        ulr_no: sample.ulr_no || job.sample?.ulr_no // admin override takes precedence
       };
     }
     if (compliance) job.compliance = compliance;

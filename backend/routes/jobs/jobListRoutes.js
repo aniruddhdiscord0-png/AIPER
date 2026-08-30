@@ -35,8 +35,13 @@ router.get('/validate-ulr', protect, async (req, res) => {
     const numStr = String(requestedNum).padStart(8, '0');
     const fullUlr = `${counter?.prefix || 'TC-12434'}${yy}${numStr}`;
 
-    // Check for duplicates
-    const existing = await Job.findOne({ 'sample.ulr_no': fullUlr }, { jobCode: 1 });
+    // Check for duplicates in both locked ULRs and pending reservations
+    const existing = await Job.findOne({
+      $or: [
+        { 'sample.ulr_no': fullUlr },
+        { reservedUlrSlot: requestedNum, reservedUlrYear: yy }
+      ]
+    }, { jobCode: 1 });
     if (existing) {
       return res.json({ valid: false, error: 'Already assigned to another job', existingJobCode: existing.jobCode });
     }

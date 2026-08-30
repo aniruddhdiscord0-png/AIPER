@@ -117,7 +117,7 @@ const jobSchema = new mongoose.Schema({
 
   // Job History Timeline
   history: [{
-    action: { type: String, enum: ['CREATED', 'DISPATCHED', 'RETURNED_TO_OFFICER', 'RESUBMITTED', 'RETEST_REQUESTED', 'COMPLETED', 'UPDATED', 'REVIEW_APPROVED', 'REPORT_UPLOADED', 'REPORT_REVERTED'] },
+    action: { type: String, enum: ['CREATED', 'DISPATCHED', 'RETURNED_TO_OFFICER', 'RESUBMITTED', 'RETEST_REQUESTED', 'COMPLETED', 'UPDATED', 'REVIEW_APPROVED', 'REPORT_UPLOADED', 'REPORT_REVERTED', 'ULR_ASSIGNED'] },
     by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     note: { type: String },
     timestamp: { type: Date, default: Date.now }
@@ -129,6 +129,12 @@ const jobSchema = new mongoose.Schema({
   siblingJobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', default: null },
   reopenReason: { type: String, default: null },
   retestNumber: { type: Number, default: 0 },
+
+  // ULR Reservation (Non-NABL opt-in deferred assignment)
+  // The slot number is reserved at opt-in time; the full ULR string is
+  // written to sample.ulr_no only when all testing is complete.
+  reservedUlrSlot: { type: Number, default: null },
+  reservedUlrYear: { type: String, default: null },
 
   // Officer-specified creation date (overrides the date prefix in jobCode when set)
   customCreationDate: { type: Date, default: null },

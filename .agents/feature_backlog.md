@@ -18,19 +18,20 @@ Items sorted by: **lowest complexity first**, **dependencies respected** (a bloc
 | 4 | C6 | Scope Socket.IO to Auth Users | Low | — |
 | 5 | C5 | Scope 50mb JSON Body Limit | Low | — |
 | 6 | F10 | Job Reassign Bug Fix | Medium | — |
-| 7 | F13 | Analyst Reassignment Tracking | Medium | F10 |
-| 8 | F5 | Accidental Approve Safeguard | Low | — |
-| 9 | F2 | Search Bar on Head's Pages | Low | — |
-| 10 | F12 | Report Minor Tweaks | Low–Med | — |
-| 11 | F8 | Toast System Overhaul | Medium | — |
-| 12 | F7 | Dashboard History Revamp | Medium | F8 (use new toasts) |
-| 13 | F3 | Transfer List Rework | Medium | — |
-| 14 | F4 | Multi-Job Dispatch | Medium | F3 (same page, safer after) |
-| 15 | F1 | Job Hold | High | F10 (shares preserve-progress logic) |
-| 16 | F6 | Job Grouping in Officer's Page | High | — |
-| 17 | C1 | DB Schema Revision | **High** ⚠️ (can scale fast) | — |
-| 18 | F9 | Report Generation Overhaul | Critical | F12 (small fixes first as baseline) |
-| 19 | F11 | Comprehensive Documentation | Ongoing | All of the above |
+| 7 | F14 | Cross-Analyst Reassign Duplication | High (Critical Bug) | — |
+| 8 | F13 | Analyst Reassignment Tracking | Medium | F10, F14 |
+| 9 | F5 | Accidental Approve Safeguard | Low | — |
+| 10 | F2 | Search Bar on Head's Pages | Low | — |
+| 11 | F12 | Report Minor Tweaks | Low–Med | — |
+| 12 | F8 | Toast System Overhaul | Medium | — |
+| 13 | F7 | Dashboard History Revamp | Medium | F8 (use new toasts) |
+| 14 | F3 | Transfer List Rework | Medium | — |
+| 15 | F4 | Multi-Job Dispatch | Medium | F3 (same page, safer after) |
+| 16 | F1 | Job Hold | High | F10, F14 |
+| 17 | F6 | Job Grouping in Officer's Page | High | — |
+| 18 | C1 | DB Schema Revision | **High** ⚠️ (can scale fast) | — |
+| 19 | F9 | Report Generation Overhaul | Critical | F12 (small fixes first as baseline) |
+| 20 | F11 | Comprehensive Documentation | Ongoing | All of the above |
 
 ---
 
@@ -115,6 +116,25 @@ Developer wants to understand and then potentially revise the current database s
 **Note**: Developer needs a refresher on the existing reassign implementation before fixing. Must review the relevant backend routes and `TestInstance.js` handling before touching anything.
 
 > **Must be done before F1 and F13** — F1's "preserve progress on hold" logic is the same mechanism. F13 adds visibility on top of the reassign history, so the underlying data must be correct first.
+
+---
+
+### F14 — Cross-Analyst Reassign Duplication Bug
+**Complexity**: High  
+**Depends on**: — (Should be investigated alongside F10)  
+**Priority**: CRITICAL (Bug)  
+**Files likely affected**: `reviewRoutes.js` / `jobRoutes.js`, `TestInstance.js`, `Job.js`, Analyst Dashboard frontend
+
+**Description**:  
+**Massive Bug**: When the Head reviews an analyst's submission and reassigns specific parameters to a *different* analyst, the system breaks job consolidation and status tracking.
+**Scenario**: 
+- Job has 6 params. Head assigns 3 to Analyst A, 3 to Analyst B.
+- B submits their 3 params.
+- Head reassigns 2 back to B, and sends 1 to A.
+- **Expected**: B sees the same job with 2 params left. A sees the same job, now with 4 params (3 original + 1 reassigned).
+- **Actual Bug**: B sees that 1 parameter as "Approved" (wrong state). A sees a completely *new/duplicate* job card (e.g. `JobCode-v2`) containing just that 1 parameter, fragmenting the job UI.
+
+**Note**: This reveals a fundamental flaw in how `TestInstance` assignment updates are handled when crossing analyst boundaries. Must fix the data logic so parameters append to existing analyst assignments rather than cloning job views.
 
 ---
 
