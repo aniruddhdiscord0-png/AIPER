@@ -187,9 +187,9 @@ router.put('/instances/:id/review', protect, authorize('HEAD'), async (req, res)
           // Simple case: same analyst, just mark retestOnly and wipe selected param values
           instance.retestOnly = selectedParamIds;
           instance.results = instance.results.map(r => {
-            const obj = r.toObject();
-            if (selectedParamIds.includes(obj.parameterId)) {
-              return { ...obj, value: '', testMethod: '', isSaved: false };
+            const obj = r.toObject ? r.toObject() : r;
+            if (selectedParamIds.includes(obj.parameterId.toString())) {
+              return { ...obj, isSaved: false };
             }
             return obj; // keep approved values intact
           });
@@ -214,9 +214,9 @@ router.put('/instances/:id/review', protect, authorize('HEAD'), async (req, res)
             // Original analyst retests some params
             instance.retestOnly = originalAnalystParams;
             instance.results = instance.results.map(r => {
-              const obj = r.toObject();
-              if (originalAnalystParams.includes(obj.parameterId)) {
-                return { ...obj, value: '', testMethod: '', isSaved: false };
+              const obj = r.toObject ? r.toObject() : r;
+              if (originalAnalystParams.includes(obj.parameterId.toString())) {
+                return { ...obj, isSaved: false };
               }
               return obj;
             });
@@ -241,9 +241,9 @@ router.put('/instances/:id/review', protect, authorize('HEAD'), async (req, res)
             instance.status = 'PENDING'; // will be re-submitted once splits merge
             // Wipe only selected params
             instance.results = instance.results.map(r => {
-              const obj = r.toObject();
-              if (selectedParamIds.includes(obj.parameterId)) {
-                return { ...obj, value: '', testMethod: '', isSaved: false };
+              const obj = r.toObject ? r.toObject() : r;
+              if (selectedParamIds.includes(obj.parameterId.toString())) {
+                return { ...obj, isSaved: false };
               }
               return obj;
             });
@@ -256,14 +256,17 @@ router.put('/instances/:id/review', protect, authorize('HEAD'), async (req, res)
 
             // Build results array with only the params for this analyst (wiped)
             const analystResults = instance.previousResults
-              .filter(r => paramIds.includes(r.parameterId))
-              .map(r => ({
-                ...r.toObject(),
-                value: '',
-                testMethod: '',
-                isSaved: false,
-                assignedTo: analystId
-              }));
+              .filter(r => paramIds.includes(r.parameterId.toString()))
+              .map(r => {
+                const obj = r.toObject ? r.toObject() : r;
+                return {
+                  ...obj,
+                  value: '',
+                  testMethod: '',
+                  isSaved: false,
+                  assignedTo: analystId
+                };
+              });
 
             // Create a sub-instance linked to the parent
             const subInstance = new TestInstance({
@@ -294,12 +297,15 @@ router.put('/instances/:id/review', protect, authorize('HEAD'), async (req, res)
           }
         }
       } else {
-        // ── Legacy: full reassignment (all params wiped) ──
+        // ── Legacy: full reassignment (preserve values) ──
         instance.retestOnly = [];
-        instance.results = instance.results.map(r => ({
-          ...r.toObject(),
-          value: ''
-        }));
+        instance.results = instance.results.map(r => {
+          const obj = r.toObject ? r.toObject() : r;
+          return {
+            ...obj,
+            isSaved: false
+          };
+        });
         instance.status = 'PENDING';
         await instance.save();
 
