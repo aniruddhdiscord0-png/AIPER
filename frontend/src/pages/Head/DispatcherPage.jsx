@@ -39,6 +39,7 @@ export default function Dispatcher() {
     () => !isCached(CACHE_KEYS.JOBS_HEAD_ACTIVE),
   );
   const [submittingJobId, setSubmittingJobId] = useState(null);
+  const [approvingJobId, setApprovingJobId] = useState(null);
 
   // Return Job State
   const [returnModalData, setReturnModalData] = useState(null); // { jobId: string, dept: string }
@@ -627,7 +628,11 @@ export default function Dispatcher() {
                                   }}
                                 >
                                   <button
+                                    disabled={approvingJobId === job._id}
                                     onClick={async () => {
+                                      if (approvingJobId === job._id) return;
+                                      
+                                      setApprovingJobId(job._id);
                                       try {
                                         await axios.put(
                                           `${API_URL}/api/jobs/${job._id}/approve-review`,
@@ -645,6 +650,8 @@ export default function Dispatcher() {
                                           err.response?.data?.message ||
                                           "Error approving job",
                                         );
+                                      } finally {
+                                        setApprovingJobId(null);
                                       }
                                     }}
                                     className="btn btn-success"
@@ -655,7 +662,11 @@ export default function Dispatcher() {
                                       gap: "0.5rem",
                                     }}
                                   >
-                                    <ClipboardCheck size={18} /> Approve Job
+                                    {approvingJobId === job._id ? (
+                                      <Spinner size="sm" message="Approving..." color="#fff" />
+                                    ) : (
+                                      <><ClipboardCheck size={18} /> Approve Job</>
+                                    )}
                                   </button>
                                   <button
                                     onClick={() => {
@@ -993,6 +1004,25 @@ export default function Dispatcher() {
                                           ) : (
                                             "Dispatch Job"
                                           )}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setReturnModalData({
+                                              jobId: job._id,
+                                              dept: dKey,
+                                            });
+                                            setReturnNote("");
+                                          }}
+                                          className="btn btn-secondary"
+                                          style={{
+                                            padding: "0.6rem 1.5rem",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem",
+                                          }}
+                                        >
+                                          <RotateCcw size={18} /> Return Job
                                         </button>
                                       </div>
                                     </div>
