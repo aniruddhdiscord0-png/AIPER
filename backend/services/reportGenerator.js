@@ -23,6 +23,13 @@ const LINE_HEIGHT = 260;     // single line height in twips
 const ROW_PADDING = 50;      // top+bottom cell margins per row
 
 // Estimate how many lines a text will need in a column of given width
+const formatSignatoryName = (name, fallback) => {
+  if (!name) return fallback;
+  if (/^(Mr\.|Ms\.|Dr\.|Mrs\.)/i.test(name.trim())) return name.trim();
+  const fallbackMatch = fallback.match(/^(Mr\.|Ms\.|Dr\.|Mrs\.)/i);
+  const honorific = fallbackMatch ? fallbackMatch[1] : '';
+  return honorific ? `${honorific} ${name.trim()}` : name.trim();
+};
 const estimateLines = (text, colWidthDxa) => {
   if (!text) return 1;
   const charsPerLine = Math.max(1, Math.floor(colWidthDxa / AVG_CHAR_WIDTH));
@@ -257,11 +264,9 @@ const buildSampleInfoTable = (job) => {
     ? `${new Date(tp.startDate).toLocaleDateString('en-IN')} to ${new Date(tp.endDate).toLocaleDateString('en-IN')}`
     : 'N/A';
 
-  const contactDetailsArr = [];
-  if (customer.contact_person) contactDetailsArr.push(customer.contact_person);
-  if (customer.mobile_number) contactDetailsArr.push(customer.mobile_number);
-  if (customer.email) contactDetailsArr.push(customer.email);
-  const contactDetailsStr = contactDetailsArr.length > 0 ? contactDetailsArr.join(' ') : 'N/A';
+  const contactPersonStr = customer.contact_person 
+    ? `${customer.contact_person}${customer.mobile_number ? ` , ${customer.mobile_number}` : ''}`
+    : (customer.mobile_number || 'N/A');
 
   const r = [];
 
@@ -271,7 +276,8 @@ const buildSampleInfoTable = (job) => {
       children: [
         new Paragraph({ children: [new TextRun({ text: "Customer Name :  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_name || job.clientName || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
         new Paragraph({ children: [new TextRun({ text: "Address :               ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_address || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
-        new Paragraph({ children: [new TextRun({ text: "Contact details:   ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: contactDetailsStr, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } })
+        new Paragraph({ children: [new TextRun({ text: "Contact Person:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: contactPersonStr, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
+        new Paragraph({ children: [new TextRun({ text: "Email :                  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.email || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } })
       ], columnSpan: 5, borders: BORDERS_ALL, margins: { top: 20, bottom: 20, left: 40, right: 40 }
     })]
   }));
@@ -554,7 +560,7 @@ const generateReport = async (job, reportType) => {
         sigCells.push(new TableCell({
           children: [
             new Paragraph({ children: [new TextRun({ text: "Authorized Signatory", bold: true, font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER }),
-            new Paragraph({ children: [new TextRun({ text: job.distribution?.chemical?.assignedHead?.name || 'Ms. Monika Pali', font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER }),
+            new Paragraph({ children: [new TextRun({ text: formatSignatoryName(job.distribution?.chemical?.assignedHead?.name, 'Ms. Monika Pali'), font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER }),
             new Paragraph({ children: [new TextRun({ text: "Technical Manager", font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER })
           ], borders: BORDERS_NONE, width: { size: Math.round(PAGE_WIDTH_DXA / (hasChem && hasMicro ? 3 : 2)), type: WidthType.DXA }
         }));
@@ -564,7 +570,7 @@ const generateReport = async (job, reportType) => {
         sigCells.push(new TableCell({
           children: [
             new Paragraph({ children: [new TextRun({ text: "Authorized Signatory", bold: true, font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER }),
-            new Paragraph({ children: [new TextRun({ text: job.distribution?.micro?.assignedHead?.name || 'Ms. Jyoti Pathak', font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER }),
+            new Paragraph({ children: [new TextRun({ text: formatSignatoryName(job.distribution?.micro?.assignedHead?.name, 'Ms. Jyoti Pathak'), font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER }),
             new Paragraph({ children: [new TextRun({ text: "Microbiology Head", font: "Times New Roman", size: 20 })], alignment: AlignmentType.CENTER })
           ], borders: BORDERS_NONE, width: { size: Math.round(PAGE_WIDTH_DXA / (hasChem && hasMicro ? 3 : 2)), type: WidthType.DXA }
         }));
