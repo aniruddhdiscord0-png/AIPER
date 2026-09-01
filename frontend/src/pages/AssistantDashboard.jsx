@@ -9,6 +9,11 @@ import API_URL from '../utils/api';
 
 
 
+const isOverdue = (deadlineStr) => {
+  if (!deadlineStr) return false;
+  return new Date(deadlineStr) < new Date();
+};
+
 export default function AssistantDashboard() {
   const [tasks, setTasks] = useState([]);
   const [activeTask, setActiveTask] = useState(null);
@@ -472,10 +477,13 @@ export default function AssistantDashboard() {
             <div>
               <h2 style={{ margin: 0 }}>Job {formatJobCode(activeTask.testCode)}</h2>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span className="badge badge-warning" style={{ fontSize: '0.9rem' }}>
+            <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <span className={`badge ${isOverdue(activeTask.deadline) ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '0.9rem' }}>
                 Target: {new Date(activeTask.deadline).toLocaleString()}
               </span>
+              {isOverdue(activeTask.deadline) && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-danger)', backgroundColor: 'var(--color-danger-light)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>Overdue</span>
+              )}
             </div>
           </div>
 
@@ -679,7 +687,10 @@ export default function AssistantDashboard() {
               <div key={task._id} className="card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: isReassigned(task) ? '4px solid var(--color-danger)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   {isReassigned(task) ? <span className="badge" style={{ backgroundColor: 'rgba(231, 76, 60, 0.1)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><RotateCcw size={12} /> Reassigned</span> : <span className="badge badge-warning" style={{ backgroundColor: 'rgba(241, 196, 15, 0.1)', color: '#d35400' }}>Pending</span>}
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{new Date(task.deadline).toLocaleDateString('en-IN')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: isOverdue(task.deadline) ? 'var(--color-danger)' : 'var(--color-text-muted)', fontWeight: isOverdue(task.deadline) ? 600 : 400 }}>{new Date(task.deadline).toLocaleDateString('en-IN')}</span>
+                    {isOverdue(task.deadline) && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-danger)', backgroundColor: 'var(--color-danger-light)', padding: '0.15rem 0.3rem', borderRadius: '3px' }}>Overdue</span>}
+                  </div>
                 </div>
                 <div>
                   <h3 style={{ margin: '0 0 0.3rem 0', color: 'var(--color-primary-dark)' }}>Job {formatJobCode(task.testCode)}</h3>

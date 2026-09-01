@@ -7,7 +7,7 @@ import API_URL from "../../utils/api";
 import Spinner from "../../components/Spinner";
 
 import {
-  Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown,
+  AlertTriangle, Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown,
   ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity as ActivityIcon, RefreshCw, X, Shield, CheckCircle,
   ClipboardCheck, Lock, RotateCcw } from "lucide-react";
 import TransferManagement from "./TransferManagement";
@@ -16,6 +16,11 @@ import { AuthContext } from "../../context/AuthContext";
 import { formatJobCode } from "../../utils/serialUtils";
 import InfiniteScroll from "../../components/InfiniteScroll";
 import JobDetailsModal from "../../components/JobDetailsModal";
+
+const isOverdue = (deadlineStr) => {
+  if (!deadlineStr) return false;
+  return new Date(deadlineStr) < new Date();
+};
 
 export default function Dispatcher() {
   const [assistants, setAssistants] = useState([]);
@@ -956,11 +961,17 @@ export default function Dispatcher() {
                                           style={{ width: "100%" }}
                                         />
                                       </div>
+                                      {deadlineDates[job._id] && deadlineTimes[job._id] && isOverdue(`${deadlineDates[job._id]}T${deadlineTimes[job._id]}`) && (
+                                        <div style={{ flex: '1 1 100%', color: 'var(--color-danger)', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.2rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                          <AlertTriangle size={14} /> This deadline is in the past
+                                        </div>
+                                      )}
                                       <div
                                         style={{
                                           flex: "0 0 auto",
                                           display: "flex",
                                           gap: "0.5rem",
+                                          alignItems: 'flex-start'
                                         }}
                                       >
                                         <button
