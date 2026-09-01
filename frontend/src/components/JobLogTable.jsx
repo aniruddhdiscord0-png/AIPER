@@ -9,6 +9,7 @@ import {
   XCircle,
   Edit,
   FileText,
+  PauseCircle,
 } from "lucide-react";
 import JobTimeline from "./JobTimeline";
 import GlobalJobHistory from "./GlobalJobHistory";
@@ -22,6 +23,7 @@ export default function JobLogTable({
   onReopen,
   onDeleteJob,
   onEditJob,
+  onHoldJob,
   editingJobId,
   defaultExpandedId,
   hasMoreData,
@@ -129,6 +131,15 @@ export default function JobLogTable({
 
   const StatusBadge = ({ status }) => {
     switch (status) {
+      case "ON_HOLD":
+        return (
+          <span
+            className="badge"
+            style={{ backgroundColor: "#F59E0B", color: "white" }}
+          >
+            Held
+          </span>
+        );
       case "COMPLETED":
         return <span className="badge badge-success">Completed</span>;
       case "IN_PROGRESS":
@@ -369,7 +380,9 @@ export default function JobLogTable({
                     >
                       <StatusBadge
                         status={
-                          job.status === "CANCELLED"
+                          job.status === "ON_HOLD"
+                            ? "ON_HOLD"
+                            : job.status === "CANCELLED"
                             ? "CANCELLED"
                             : getJobStatus(job)
                         }
@@ -472,6 +485,26 @@ export default function JobLogTable({
                             title={editingJobId === job._id ? "Currently Editing" : "Edit Job"}
                           >
                             <Edit size={16} />
+                          </button>
+                        )}
+                        {onHoldJob && job.status === "ACTIVE" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onHoldJob(job._id);
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#F59E0B",
+                              cursor: "pointer",
+                              padding: "0.2rem",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                            title="Place Job on Hold"
+                          >
+                            <PauseCircle size={16} />
                           </button>
                         )}
                         {onDeleteJob && job.status !== "CANCELLED" && (
@@ -600,7 +633,15 @@ export default function JobLogTable({
                     {new Date(job.createdAt).toLocaleDateString("en-IN")}
                   </div>
                 </div>
-                <StatusBadge status={getJobStatus(job)} />
+                <StatusBadge 
+                  status={
+                    job.status === "ON_HOLD" 
+                      ? "ON_HOLD" 
+                      : job.status === "CANCELLED" 
+                        ? "CANCELLED" 
+                        : getJobStatus(job)
+                  } 
+                />
               </div>
 
               <div style={{ marginBottom: "1rem" }}>
@@ -700,6 +741,24 @@ export default function JobLogTable({
                       title={editingJobId === job._id ? "Currently Editing" : "Edit Job"}
                     >
                       <Edit size={16} />
+                    </button>
+                  )}
+                  {onHoldJob && job.status === "ACTIVE" && (
+                    <button
+                      onClick={() => onHoldJob(job._id)}
+                      style={{
+                        padding: "0.5rem",
+                        background: "rgba(245, 158, 11, 0.1)",
+                        border: "1px solid rgba(245, 158, 11, 0.4)",
+                        borderRadius: "6px",
+                        color: "#F59E0B",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      title="Place Job on Hold"
+                    >
+                      <PauseCircle size={16} />
                     </button>
                   )}
                   {onDeleteJob && job.status !== "CANCELLED" && (

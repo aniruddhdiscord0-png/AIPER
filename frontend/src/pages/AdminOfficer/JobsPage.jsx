@@ -10,7 +10,7 @@ import Spinner from "../../components/Spinner";
 import { 
   Play, Plus, Check, Clock, Edit, FileText, XCircle, Search, LogOut, ChevronDown, 
   ChevronRight, ArrowLeft, Download, Eye, LayoutDashboard, Users, Activity, AlertTriangle, RefreshCw, X, Shield,
-  Calendar, Repeat2 } from "lucide-react";
+  Calendar, Repeat2, PauseCircle } from "lucide-react";
 import JobLogTable from "../../components/JobLogTable";
 import InfiniteScroll from "../../components/InfiniteScroll";
 import { useSocket } from "../../context/SocketContext";
@@ -127,6 +127,8 @@ export default function Jobs() {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteConfirmJobId, setDeleteConfirmJobId] = useState(null);
+  const [holdConfirmJobId, setHoldConfirmJobId] = useState(null);
+  const [holdReason, setHoldReason] = useState("");
   const [heads, setHeads] = useState([]);
   const [assignedMicroHead, setAssignedMicroHead] = useState("");
   const [assignedChemicalHead, setAssignedChemicalHead] = useState("");
@@ -315,6 +317,7 @@ export default function Jobs() {
     socket.on("JOB_UPDATED", triggerUpdate);
     socket.on("JOB_RETURNED", triggerUpdate);
     socket.on("JOB_DELETED", triggerUpdate);
+    socket.on("JOB_HELD", triggerUpdate);
 
     return () => {
       socket.off("JOB_CREATED", triggerUpdate);
@@ -326,6 +329,7 @@ export default function Jobs() {
       socket.off("JOB_UPDATED", triggerUpdate);
       socket.off("JOB_RETURNED", triggerUpdate);
       socket.off("JOB_DELETED", triggerUpdate);
+      socket.off("JOB_HELD", triggerUpdate);
     };
   }, [socket]);
 
@@ -820,6 +824,40 @@ export default function Jobs() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+    }
+  };
+
+  const handleHoldJob = (jobId) => {
+    setHoldConfirmJobId(jobId);
+    setHoldReason("");
+  };
+
+  const executeHoldJob = async () => {
+    if (!holdConfirmJobId) return;
+    if (holdReason.trim().length < 10) {
+      alert("Please provide a valid reason (min 10 characters).");
+      return;
+    }
+    try {
+      await axios.put(
+        `${API_URL}/api/jobs/${holdConfirmJobId}/hold`,
+        { holdReason },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      );
+      invalidateCache(CACHE_KEYS.JOBS_ALL, CACHE_KEYS.STATS);
+      fetchJobs();
+      setHoldConfirmJobId(null);
+      setHoldReason("");
+    } catch (err) {
+      console.error(err);
+      alert(
+        "Error holding job: " + (err.response?.data?.message || err.message),
+      );
     }
   };
 
@@ -2649,6 +2687,7 @@ export default function Jobs() {
           title="All Client Sample Jobs"
           onDeleteJob={handleDeleteJob}
           onEditJob={handleEditJob}
+          onHoldJob={handleHoldJob}
           editingJobId={editingJobId}
           onReopen={(job) =>
             navigate("/admin-officer/jobs", { state: { reopenJob: job } })
@@ -2908,6 +2947,143 @@ export default function Jobs() {
           </div>
         </div>
       )}
+
+      {/* ── CUSTOM CONFIRMATION MODAL (HOLD JOB) ── */}
+      {holdConfirmJobId && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            animation: "fadeIn 0.2s ease",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--color-bg-elevated)",
+              padding: "2rem",
+              borderRadius: "16px",
+              width: "400px",
+              maxWidth: "90%",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+              border: "1px solid var(--color-border)",
+              animation: "slideUp 0.3s ease",
+            }}
+          >
+            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+              <div
+                style={{
+                  width: "50px",
+                  height: "50px",
+                  backgroundColor: "rgba(245, 158, 11, 0.1)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 1rem",
+                }}
+              >
+                <PauseCircle size={28} color="#F59E0B" />
+              </div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1.25rem",
+                  fontWeight: "600",
+                  color: "var(--color-text)",
+                }}
+              >
+                Place Job on Hold
+              </h3>
+              <p
+                style={{
+                  margin: "0.5rem 0 0",
+                  fontSize: "0.9rem",
+                  color: "var(--color-text-muted)",
+                }}
+              >
+                This will recall the job from the Head and Analyst queues while preserving their progress. The ULR slot (if reserved) will be freed.
+              </p>
+            </div>
+
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: "500", color: "var(--color-text)" }}>
+                Hold Reason (min 10 characters) <span style={{ color: "var(--color-danger)" }}>*</span>
+              </label>
+              <textarea
+                value={holdReason}
+                onChange={(e) => setHoldReason(e.target.value)}
+                placeholder="Why is this job being placed on hold?"
+                style={{
+                  width: "100%",
+                  minHeight: "80px",
+                  padding: "0.75rem",
+                  borderRadius: "8px",
+                  border: "1px solid var(--color-border)",
+                  backgroundColor: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  resize: "vertical",
+                  fontSize: "0.95rem"
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+              <button
+                onClick={() => {
+                  setHoldConfirmJobId(null);
+                  setHoldReason("");
+                }}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem",
+                  backgroundColor: "var(--color-bg)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                  color: "var(--color-text)",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseOver={(e) =>
+                  (e.target.style.backgroundColor = "var(--color-border)")
+                }
+                onMouseOut={(e) =>
+                  (e.target.style.backgroundColor = "var(--color-bg)")
+                }
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeHoldJob}
+                disabled={holdReason.trim().length < 10}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem",
+                  backgroundColor: "#F59E0B",
+                  border: "none",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontWeight: "600",
+                  cursor: holdReason.trim().length < 10 ? "not-allowed" : "pointer",
+                  transition: "all 0.2s ease",
+                  opacity: holdReason.trim().length < 10 ? 0.6 : 1,
+                }}
+              >
+                Confirm Hold
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};

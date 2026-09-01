@@ -386,6 +386,15 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
       return res.status(400).json({ message: 'Job is complete and immutable.' });
     }
 
+    let wasOnHold = false;
+    if (job.status === 'ON_HOLD') {
+      wasOnHold = true;
+      job.status = 'ACTIVE';
+      job.holdReason = null;
+      job.heldAt = null;
+      job.heldBy = null;
+    }
+
     const { customer, sample, compliance, parameters, groupMetadata, pesticidePanel, sampleFlow, assignedMicroHead, assignedChemicalHead, showSpecifications } = req.body;
 
     if (customer) job.customer = customer;
@@ -604,6 +613,14 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
         action: isResubmitted ? 'RESUBMITTED' : 'UPDATED',
         by: req.user._id,
         note: isResubmitted ? 'Job resubmitted by Admin Officer after corrections' : 'Job updated by Admin Officer'
+      });
+    }
+
+    if (wasOnHold) {
+      job.history.push({
+        action: 'HOLD_RELEASED',
+        by: req.user._id,
+        note: 'Job edited and re-dispatched from hold.'
       });
     }
 

@@ -121,7 +121,7 @@ router.get('/', protect, async (req, res) => {
   try {
     let query = {};
     if (req.query.includeCancelled !== 'true') {
-      query.status = { $ne: 'CANCELLED' };
+      query.status = { $nin: ['CANCELLED', 'ON_HOLD'] };
     }
 
     if (req.user.role === 'HEAD') {

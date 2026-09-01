@@ -244,6 +244,59 @@ router.post('/:id/retest', protect, authorize('AMIN_OFFIC'), async (req, res) =>
   }
 });
 
+// Place a job on hold
+router.put('/:id/hold', protect, authorize('ADMIN_OFFICER', 'ADMIN'), async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    
+    if (job.status === 'CANCELLED') {
+      return res.status(400).json({ message: 'Cannot hold a cancelled job.' });
+    }
+    if (job.status === 'ON_HOLD') {
+      return res.status(400).json({ message: 'Job is already on hold.' });
+    }
+
+    const { holdReason } = req.body;
+    if (!holdReason || holdReason.trim().length < 10) {
+      return res.status(400).json({ message: 'A valid hold reason (min 10 chars) is required.' });
+    }
+
+    job.status = 'ON_HOLD';
+    job.holdReason = holdReason;
+    job.heldAt = new Date();
+    job.heldBy = req.user._id;
+
+    job.history.push({
+      action: 'HELD',
+      by: req.user._id,
+      note: `Job placed on hold: ${holdReason}`
+    });
+
+    // Clear ULR slot reservation if any
+    if (job.reservedUlrSlot) {
+      job.reservedUlrSlot = null;
+      job.reservedUlrYear = null;
+    }
+
+    await job.save();
+
+    audit('JOB_HELD', {
+      req,
+      message: `Job ${job.jobCode} placed on hold`,
+      target: { model: 'Job', documentId: job._id.toString(), identifier: job.jobCode }
+    });
+
+    if (req.app.get('io')) {
+      req.app.get('io').emit('JOB_HELD', { jobId: job._id });
+    }
+
+    res.json({ message: 'Job successfully placed on hold', job });
+  } catch (error) {
+    res.status(500).json({ message: 'Error holding job', error: error.message });
+  }
+});
+
 // Cancel a job (Soft Delete)
 router.put('/:id/cancel', protect, authorize('ADMIN_OFFICER', 'ADMIN'), async (req, res) => {
   try {

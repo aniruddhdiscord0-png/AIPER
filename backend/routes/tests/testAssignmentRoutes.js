@@ -34,26 +34,35 @@ router.get('/instances', protect, async (req, res) => {
       .populate('reviewHistory.by', 'name')
       .sort({ deadline: 1 });
 
-    // Helper: attach sampleDescription from related Jobs
-    const attachSampleDescriptions = async (docs) => {
+    // Helper: attach sampleDescription from related Jobs AND filter out ON_HOLD jobs
+    const attachSampleDescriptionsAndFilterHold = async (docs) => {
       const jobIds = [...new Set(docs.map(i => i.jobId?.toString()))].filter(Boolean);
-      const jobs = await Job.find({ _id: { $in: jobIds } }, 'sample.sample_description');
-      const jobDescMap = {};
-      jobs.forEach(j => { jobDescMap[j._id.toString()] = j.sample?.sample_description || ''; });
-      return docs.map(doc => ({ ...doc, sampleDescription: jobDescMap[doc.jobId?.toString()] || '' }));
+      const jobs = await Job.find({ _id: { $in: jobIds } }, 'sample.sample_description status');
+      const jobMap = {};
+      jobs.forEach(j => { jobMap[j._id.toString()] = j; });
+      
+      return docs
+        .filter(doc => {
+          const parentJob = jobMap[doc.jobId?.toString()];
+          return parentJob && parentJob.status !== 'ON_HOLD';
+        })
+        .map(doc => ({ 
+          ...doc, 
+          sampleDescription: jobMap[doc.jobId?.toString()]?.sample?.sample_description || '' 
+        }));
     };
 
     // Mask client name and attach sample description for ASSISTANT
     if (req.user.role === 'ASSISTANT') {
       let docs = instances.map(i => { let d = i.toObject(); d.clientName = '***HIDDEN***'; return d; });
-      docs = await attachSampleDescriptions(docs);
+      docs = await attachSampleDescriptionsAndFilterHold(docs);
       instances = docs;
     }
 
     // Attach sample description for HEAD (shown read-only in review card)
     if (req.user.role === 'HEAD') {
       let docs = instances.map(i => i.toObject());
-      docs = await attachSampleDescriptions(docs);
+      docs = await attachSampleDescriptionsAndFilterHold(docs);
       instances = docs;
     }
 

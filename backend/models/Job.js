@@ -9,9 +9,12 @@ const jobSchema = new mongoose.Schema({
   // Legacy field — kept for backward compat, auto-populated from customer.customer_name on create
   clientName: { type: String },
   totalSampleVolume: { type: Number },
-  status: { type: String, enum: ['ACTIVE', 'CANCELLED'], default: 'ACTIVE' },
+  status: { type: String, enum: ['ACTIVE', 'ON_HOLD', 'CANCELLED'], default: 'ACTIVE' },
   cancelledAt: { type: Date },
   cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  holdReason: { type: String, default: null },
+  heldAt: { type: Date, default: null },
+  heldBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
   // --- Parameter System ---
   groupMetadata: {
@@ -117,7 +120,7 @@ const jobSchema = new mongoose.Schema({
 
   // Job History Timeline
   history: [{
-    action: { type: String, enum: ['CREATED', 'DISPATCHED', 'RETURNED_TO_OFFICER', 'RESUBMITTED', 'RETEST_REQUESTED', 'COMPLETED', 'UPDATED', 'REVIEW_APPROVED', 'REPORT_UPLOADED', 'REPORT_REVERTED', 'ULR_ASSIGNED'] },
+    action: { type: String, enum: ['CREATED', 'DISPATCHED', 'RETURNED_TO_OFFICER', 'RESUBMITTED', 'RETEST_REQUESTED', 'COMPLETED', 'UPDATED', 'REVIEW_APPROVED', 'REPORT_UPLOADED', 'REPORT_REVERTED', 'ULR_ASSIGNED', 'HELD', 'HOLD_RELEASED'] },
     by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     note: { type: String },
     timestamp: { type: Date, default: Date.now }
