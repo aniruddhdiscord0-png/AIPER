@@ -774,6 +774,11 @@ export default function Jobs() {
         setIsEditingReturnedJob(false);
         setAssignedMicroHead("");
         setAssignedChemicalHead("");
+        setUlrPreview("");
+        setAssignUlrToNonNabl(false);
+        setUlrEditMode(false);
+        setCustomUlrNumber("");
+        setUlrValidation({ valid: null, error: null, fullUlr: null });
         // Re-select default heads
         const micro = heads.filter((h) => h.department === "Micro");
         if (micro.length > 0) setAssignedMicroHead(micro[0]._id);
@@ -2098,7 +2103,7 @@ export default function Jobs() {
                                           {ulrPreview || '—'}
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
-                                          Next in sequence. Officially assigned on save.
+                                          A slot is reserved on save. The final ULR is built on Head Approval.
                                         </div>
                                       </div>
                                     )}
