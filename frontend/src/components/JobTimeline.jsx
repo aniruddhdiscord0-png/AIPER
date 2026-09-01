@@ -104,7 +104,7 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
         s4_status = 'active';
       } else if (dStatus === 'COMPLETED') {
         s4_status = 'completed';
-      } else if (instance && dStatus !== 'PENDING_REVIEW' && dStatus !== 'REVIEW_APPROVED' && dStatus !== 'PENDING' && dStatus !== 'ASSIGNED_TO_ASSISTANT') {
+      } else if (instance && dStatus !== 'PENDING_REVIEW' && dStatus !== 'REVIEW_APPROVED' && dStatus !== 'PENDING' && dStatus !== 'ASSIGNED_TO_ASSISTANT' && dStatus !== 'RETURNED') {
         // Fallback for older jobs without accurate dStatus
         if (instance.status === 'PENDING_HEAD_REVIEW') s4_status = 'active';
         else if (headApproval || instance.status === 'COMPLETED') s4_status = 'completed';
