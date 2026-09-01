@@ -20,18 +20,26 @@ Items sorted by: **lowest complexity first**, **dependencies respected** (a bloc
 | 6 | F10 | Job Reassign Bug Fix | Medium | — |
 | 7 | F14 | Cross-Analyst Reassign Duplication | High (Critical Bug) | — |
 | 8 | F13 | Analyst Reassignment Tracking | Medium | F10, F14 |
-| 9 | F5 | Accidental Approve Safeguard | Low | — |
-| 10 | F2 | Search Bar on Head's Pages | Low | — |
-| 11 | F12 | Report Minor Tweaks | Low–Med | — |
-| 12 | F8 | Toast System Overhaul | Medium | — |
-| 13 | F7 | Dashboard History Revamp | Medium | F8 (use new toasts) |
-| 14 | F3 | Transfer List Rework | Medium | — |
-| 15 | F4 | Multi-Job Dispatch | Medium | F3 (same page, safer after) |
-| 16 | F1 | Job Hold | High | F10, F14 |
-| 17 | F6 | Job Grouping in Officer's Page | High | — |
-| 18 | C1 | DB Schema Revision | **High** ⚠️ (can scale fast) | — |
-| 19 | F9 | Report Generation Overhaul | Critical | F12 (small fixes first as baseline) |
-| 20 | F11 | Comprehensive Documentation | Ongoing | All of the above |
+| 9 | B7 | Cancellation Modal Em Dash | Trivial | — |
+| 10 | B4 | Analyst Task Modal Visibility | Low | — |
+| 11 | B6 | Hand Over Sample Modal Broken | Low (Critical Bug) | — |
+| 12 | B2 | Timeline State Mismatch on Return | Low (Bug) | — |
+| 13 | B3 | Deadline Lateness Indicator | Low | — |
+| 14 | B5 | Retained Job Shows Stale ULR Preview | Low (Bug) | — |
+| 15 | B1 | ULR Preview Staleness on Concurrent Jobs | Medium (Bug) | — |
+| 16 | F5 | Accidental Approve Safeguard | Low | — |
+| 17 | F2 | Search Bar on Head's Pages | Low | — |
+| 18 | F12 | Report Minor Tweaks | Low-Med | — |
+| 19 | F8 | Toast System Overhaul | Medium | — |
+| 20 | F7 | Dashboard History Revamp | Medium | F8 (use new toasts) |
+| 21 | F3 | Transfer List Rework | Medium | — |
+| 22 | F4 | Multi-Job Dispatch | Medium | F3 (same page, safer after) |
+| 23 | F1 | Job Hold | High | F10, F14 |
+| 24 | F6 | Job Grouping in Officer's Page | High | — |
+| 25 | C1 | DB Schema Revision | **High** (can scale fast) | — |
+| 26 | F9 | Report Generation Overhaul | Critical | F12 (small fixes first as baseline) |
+| 27 | C7 | Full UI Revamp | Critical (Design) | All features above |
+| 28 | F11 | Comprehensive Documentation | Ongoing | All of the above |
 
 ---
 
@@ -339,7 +347,122 @@ Full project documentation to be written and stored in `.agents/`. Divided into 
 
 | Requirement | Detail |
 |---|---|
-| 📱 **Mobile First** | ALL changes must prioritize mobile layout. Roles relying on mobile must not have degraded UX. |
-| 🏗️ **Architecture Safety** | Do not restructure file layout unless explicitly planned and reviewed. |
-| ⚡ **Caching Safety** | Do not break `fetchWithCache`, `invalidateCache`, `AbortController` patterns. Cache keys must be updated wherever new data is fetched. |
-| 🔌 **Socket Safety** | New features that change job state must emit and listen to appropriate socket events. |
+| Mobile First | ALL changes must prioritize mobile layout. Roles relying on mobile must not have degraded UX. |
+| Architecture Safety | Do not restructure file layout unless explicitly planned and reviewed. |
+| Caching Safety | Do not break `fetchWithCache`, `invalidateCache`, `AbortController` patterns. Cache keys must be updated wherever new data is fetched. |
+| Socket Safety | New features that change job state must emit and listen to appropriate socket events. |
+
+---
+
+## Bugs and Chores (Sep 1 Testing Session)
+
+### B1 — ULR Preview Staleness on Concurrent Jobs
+**Complexity**: Medium (Bug)  
+**Depends on**: —  
+**Priority**: High (Data Integrity)
+**Files likely affected**: `JobForm.jsx` or `JobsPage.jsx` (ULR preview fetch), `jobListRoutes.js` (`/api/jobs/recent-ulrs`)
+
+**Description**:  
+When creating a NABL or Non-NABL (opt-in) job, the form fetches and displays a preview of the next ULR number. However, if another job completes testing and gets approved (consuming the ULR counter) between the time this form was opened and when it is submitted, the previewed ULR number is now stale and wrong.
+
+The actual counter increments correctly on submission, so the *saved* ULR is always correct. The problem is purely a display mismatch: the user sees ULR `N` in the form but the job gets saved with ULR `N+1`.
+
+**Fix direction**: Either (1) re-fetch the ULR preview immediately before form submit and show a confirmation if it changed, or (2) remove the live preview entirely for deferred NABL jobs (where ULR is not assigned until completion anyway) and show a message like "ULR will be assigned on completion" instead. For Non-NABL opt-in, show "Slot reserved on save" after submit rather than a number upfront.
+
+---
+
+### B2 — Timeline State Mismatch: Head Stage Shows Green on RETURNED
+**Complexity**: Low (Bug)  
+**Depends on**: —  
+**Priority**: High (Confusing to users)  
+**Files likely affected**: `frontend/src/components/JobTimeline.jsx`
+
+**Description**:  
+In the job timeline, the "Dept Head Review" stage (s4) incorrectly turns **green** when a job is in the `RETURNED` state (Head has sent it back to the analyst). It should remain grey (pending), since the Head has not approved the job.
+
+Only `COMPLETED` status should show s4 as green. `PENDING_HEAD_REVIEW` should show s4 as active (clock icon). All other states including `RETURNED` should show s4 as grey.
+
+---
+
+### B3 — No Lateness Indication for Passed Deadlines
+**Complexity**: Low  
+**Depends on**: —  
+**Priority**: Medium  
+**Files likely affected**: Analyst task modal component, any deadline display component
+
+**Description**:  
+When a Head sets a testing deadline (e.g., 5:00 PM Sep 1) and that deadline has already passed by the time it is viewed (e.g., 9:42 PM Sep 1), there is no visual indicator that the deadline is overdue. The deadline is displayed as-is with no urgency styling.
+
+Also, there is no validation at the *setting* stage to prevent an officer or head from entering a deadline in the past.
+
+**Fix direction**: (1) On deadline display: if `deadline < now`, show the timestamp in red with an "Overdue" or "Late" badge. (2) On deadline input: add a client-side check that the selected datetime is in the future, and show an inline warning if not.
+
+---
+
+### B4 — Analyst Task Modal: Input Invisible in Shrunken Window
+**Complexity**: Low  
+**Depends on**: —  
+**Priority**: Medium (UX)  
+**Files likely affected**: Analyst test submission modal component
+
+**Description**:  
+When the browser window is shrunk horizontally (narrow viewport), the "Observed Result" input field in the analyst's test parameter entry modal becomes invisible or too small to see what is being typed. The label and unit suffix overlap the input field.
+
+**Fix direction**: Ensure the input row uses a responsive flex/grid layout that stacks vertically on narrow viewports. The number input, unit label, and suffix should each have proper `min-width` and wrap gracefully.
+
+---
+
+### B5 — Retained Job Form Data Shows Stale ULR Preview After Submission
+**Complexity**: Low (Bug)  
+**Depends on**: —  
+**Priority**: Medium  
+**Files likely affected**: `JobForm.jsx` / `JobsPage.jsx` form reset logic
+
+**Description**:  
+After successfully creating a job, if the form is populated by retaining the previous job's data ("retain" feature), the ULR preview displayed still shows the old job's ULR number (e.g., slot 237) even though that number was already consumed. The new job correctly gets the next slot (238), but the number shown in the form before submission is wrong.
+
+**Fix direction**: When the form is reset/retained after a successful submission, the ULR preview state must be cleared and re-fetched from the server rather than carried over from the previous form state.
+
+---
+
+### B6 — Hand Over Sample Modal Broken (Micro Head) / Receive Modal Broken (Chemical Head)
+**Complexity**: Low (Critical Bug)  
+**Depends on**: —  
+**Priority**: Critical (Blocks sample transfer workflow)  
+**Files likely affected**: Sample transfer modal component(s), possibly `SampleTransferRoutes.js`
+
+**Description**:  
+The "Hand Over Sample" confirmation modal for the Micro Head is rendering incorrectly — the modal content overlaps the job list below it and the layout is broken. Tapping Confirm may still work functionally, but the UI is unusable visually.
+
+Similarly, the "Receive Sample" modal for the Chemical Head is also broken.
+
+This blocks the physical sample handover workflow for sequential (dual-department) jobs entirely.
+
+---
+
+### B7 — Cancellation Confirmation Modal Contains Em Dash
+**Complexity**: Trivial (Chore)  
+**Depends on**: —  
+**Priority**: Low  
+**Files likely affected**: Job cancellation confirmation modal component
+
+**Description**:  
+The cancellation confirmation modal contains the sentence: *"The job code will be permanently bound to this cancelled job and the serial number sequence will be maintained."* This text must not contain an em dash (—). Check and remove any em dash characters from this and any adjacent confirmation text in the same modal, per the project-wide no-em-dash rule.
+
+---
+
+### C7 — Full UI Revamp
+**Complexity**: Critical (Design-Heavy)  
+**Depends on**: All features above should be complete before beginning  
+**Priority**: Low (post-feature-freeze)  
+**Files likely affected**: All frontend pages, `index.css`, component library
+
+**Description**:  
+Once the feature backlog is complete and the platform is functionally stable, a full visual and UX overhaul is planned. The current design is functional but dated. The revamp should bring the UI to a modern, premium standard with:
+- Redesigned sidebar navigation and layout grid
+- Consistent design tokens (spacing, colour palette, typography)
+- Mobile-first redesign of all role-specific dashboards (Analyst, Head, Officer)
+- Improved data density and card layouts for job lists
+- Cohesive icon and badge system
+
+**Note**: Do NOT start this until the backlog is fully closed. Revamping the UI while features are still in flux will cause double rework.
