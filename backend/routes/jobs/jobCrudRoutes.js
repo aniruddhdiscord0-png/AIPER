@@ -595,34 +595,38 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
     }
 
     // --- History Entry ---
+    let actionType = 'UPDATED';
+    let actionNote = 'Job updated by Admin Officer';
+
     const hasParamChanges = paramDelta && (paramDelta.added.length > 0 || paramDelta.removed.length > 0);
+    
     if (hasParamChanges) {
       const addedNames = paramDelta.added.map(p => p.name).filter(Boolean);
       const removedNames = paramDelta.removed.map(p => p.name).filter(Boolean);
       const parts = [];
       if (addedNames.length > 0) parts.push(`Added: ${addedNames.join(', ')}`);
       if (removedNames.length > 0) parts.push(`Removed: ${removedNames.join(', ')}`);
-
-      job.history.push({
-        action: 'UPDATED',
-        by: req.user._id,
-        note: `Parameters modified. ${parts.join('. ')}.`
-      });
-    } else {
-      job.history.push({
-        action: isResubmitted ? 'RESUBMITTED' : 'UPDATED',
-        by: req.user._id,
-        note: isResubmitted ? 'Job resubmitted by Admin Officer after corrections' : 'Job updated by Admin Officer'
-      });
+      
+      actionNote = `Parameters modified. ${parts.join('. ')}.`;
+    } else if (isResubmitted) {
+      actionType = 'RESUBMITTED';
+      actionNote = 'Job resubmitted by Admin Officer after corrections';
     }
 
     if (wasOnHold) {
-      job.history.push({
-        action: 'HOLD_RELEASED',
-        by: req.user._id,
-        note: 'Job edited and re-dispatched from hold.'
-      });
+      if (actionType === 'UPDATED' && !hasParamChanges) {
+        actionType = 'HOLD_RELEASED';
+        actionNote = 'Job edited and re-dispatched from hold.';
+      } else {
+        actionNote += ' (Hold Released)';
+      }
     }
+
+    job.history.push({
+      action: actionType,
+      by: req.user._id,
+      note: actionNote
+    });
 
     // Hybrid sibling sync: propagate customer/sample-metadata/compliance and update sibling's own params
     const { nablMode, nablParameters, nonNablParameters, nablGroupMetadata, nonNablGroupMetadata,
@@ -701,7 +705,7 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
     }
 
     if (req.app.get('io')) {
-      req.app.get('io').emit('JOB_CREATED');
+      req.app.get('io').emit('JOB_UPDATED');
       if (hasParamChanges2) {
         req.app.get('io').emit('PARAMETERS_MODIFIED', { jobId: job._id, jobCode: job.jobCode });
       }

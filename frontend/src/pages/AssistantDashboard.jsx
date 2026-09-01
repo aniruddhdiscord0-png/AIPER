@@ -131,6 +131,7 @@ export default function AssistantDashboard() {
     socket.on('TEST_REVIEWED', updateTasks);
     socket.on('JOB_UPDATED', updateTasks);
     socket.on('JOB_DELETED', updateTasks);
+    socket.on('JOB_HELD', updateTasks);
     socket.on('SAMPLE_DESCRIPTION_UPDATED', ({ jobId, description }) => {
       // Update the open task's description if it matches (and the analyst isn't currently typing)
       if (activeTask && activeTask.jobId?.toString() === jobId && !isTypingDescRef.current) {
@@ -148,6 +149,7 @@ export default function AssistantDashboard() {
       socket.off('TEST_REVIEWED', updateTasks);
       socket.off('JOB_UPDATED', updateTasks);
       socket.off('JOB_DELETED', updateTasks);
+      socket.off('JOB_HELD', updateTasks);
       socket.off('SAMPLE_DESCRIPTION_UPDATED');
     };
   }, [socket]);

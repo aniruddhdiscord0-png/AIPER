@@ -68,10 +68,14 @@ export default function ReviewQueue() {
 
     socket.on("TEST_SUBMITTED", refresh);
     socket.on("TEST_REVIEWED", refresh);
+    socket.on("JOB_HELD", refresh);
+    socket.on("JOB_UPDATED", refresh);
 
     return () => {
       socket.off("TEST_SUBMITTED", refresh);
       socket.off("TEST_REVIEWED", refresh);
+      socket.off("JOB_HELD", refresh);
+      socket.off("JOB_UPDATED", refresh);
     };
   }, [socket]);
 

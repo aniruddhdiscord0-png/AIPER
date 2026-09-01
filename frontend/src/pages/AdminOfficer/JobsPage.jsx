@@ -827,9 +827,6 @@ export default function Jobs() {
     }
   };
 
-    }
-  };
-
   const handleHoldJob = (jobId) => {
     setHoldConfirmJobId(jobId);
     setHoldReason("");
@@ -2968,7 +2965,7 @@ export default function Jobs() {
         >
           <div
             style={{
-              backgroundColor: "var(--color-bg-elevated)",
+              backgroundColor: "var(--color-surface)",
               padding: "2rem",
               borderRadius: "16px",
               width: "400px",
@@ -2998,7 +2995,7 @@ export default function Jobs() {
                   margin: 0,
                   fontSize: "1.25rem",
                   fontWeight: "600",
-                  color: "var(--color-text)",
+                  color: "var(--color-text-main)",
                 }}
               >
                 Place Job on Hold
@@ -3015,7 +3012,7 @@ export default function Jobs() {
             </div>
 
             <div style={{ marginBottom: "1.5rem" }}>
-              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: "500", color: "var(--color-text)" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: "500", color: "var(--color-text-main)" }}>
                 Hold Reason (min 10 characters) <span style={{ color: "var(--color-danger)" }}>*</span>
               </label>
               <textarea
@@ -3028,8 +3025,8 @@ export default function Jobs() {
                   padding: "0.75rem",
                   borderRadius: "8px",
                   border: "1px solid var(--color-border)",
-                  backgroundColor: "var(--color-bg)",
-                  color: "var(--color-text)",
+                  backgroundColor: "var(--color-surface)",
+                  color: "var(--color-text-main)",
                   resize: "vertical",
                   fontSize: "0.95rem"
                 }}
@@ -3045,10 +3042,10 @@ export default function Jobs() {
                 style={{
                   flex: 1,
                   padding: "0.75rem",
-                  backgroundColor: "var(--color-bg)",
+                  backgroundColor: "var(--color-surface)",
                   border: "1px solid var(--color-border)",
                   borderRadius: "8px",
-                  color: "var(--color-text)",
+                  color: "var(--color-text-main)",
                   fontWeight: "500",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
@@ -3057,7 +3054,7 @@ export default function Jobs() {
                   (e.target.style.backgroundColor = "var(--color-border)")
                 }
                 onMouseOut={(e) =>
-                  (e.target.style.backgroundColor = "var(--color-bg)")
+                  (e.target.style.backgroundColor = "var(--color-surface)")
                 }
               >
                 Cancel

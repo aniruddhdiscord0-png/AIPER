@@ -125,6 +125,7 @@ export default function Dispatcher() {
     socket.on("TRANSFER_RECEIVED", updateBoth);
     socket.on("TEST_SUBMITTED", updateBoth);
     socket.on("TEST_REVIEWED", updateBoth);
+    socket.on("JOB_HELD", updateBoth);
 
     return () => {
       socket.off("JOB_CREATED", updateBoth);
@@ -134,6 +135,7 @@ export default function Dispatcher() {
       socket.off("TRANSFER_RECEIVED", updateBoth);
       socket.off("TEST_SUBMITTED", updateBoth);
       socket.off("TEST_REVIEWED", updateBoth);
+      socket.off("JOB_HELD", updateBoth);
     };
   }, [socket, user]);
 
