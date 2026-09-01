@@ -1,16 +1,14 @@
-
-
 :root {
   /* Slate Blue authority */
   --color-primary: #2C3E50;
   --color-primary-light: #34495E;
   --color-primary-dark: #1A252F;
-  
+
   /* Sterile Workspace */
   --color-background: #F8FAFC;
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
-  
+
   /* Status Colors */
   --color-success: #10B981;
   --color-success-light: #DEF7EC;
@@ -18,11 +16,11 @@
   --color-warning-light: #FEF3C7;
   --color-danger: #EF4444;
   --color-danger-light: #FDE8E8;
-  
+
   /* Text */
   --color-text-main: #1E293B;
   --color-text-muted: #64748B;
-  
+
   /* UI Elements */
   --color-border: #E2E8F0;
   --radius-md: 8px;
@@ -30,7 +28,7 @@
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  
+
   /* Fonts */
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -51,7 +49,11 @@ body {
 }
 
 /* Typography Utility classes */
-h1, h2, h3, h4, h5 {
+h1,
+h2,
+h3,
+h4,
+h5 {
   font-weight: 600;
   color: var(--color-primary);
 }
@@ -61,7 +63,8 @@ h1, h2, h3, h4, h5 {
 }
 
 /* Inputs & Buttons */
-input, select {
+input,
+select {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid var(--color-border);
@@ -72,7 +75,8 @@ input, select {
   font-size: 0.95rem;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
 }
@@ -153,9 +157,20 @@ input:focus, select:focus {
   font-weight: 600;
 }
 
-.badge-success { background: var(--color-success-light); color: var(--color-success); }
-.badge-warning { background: var(--color-warning-light); color: var(--color-warning); }
-.badge-danger { background: var(--color-danger-light); color: var(--color-danger); }
+.badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.badge-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
 
 /* Table Stylings */
 table {
@@ -206,10 +221,10 @@ tr:hover {
 
 /* Modern Animations & Backgrounds */
 .mesh-gradient {
-  background: radial-gradient(at 0% 0%, hsla(210,100%,10%,1) 0, transparent 50%), 
-              radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-              radial-gradient(at 100% 0%, hsla(210,100%,10%,1) 0, transparent 50%),
-              #1A252F;
+  background: radial-gradient(at 0% 0%, hsla(210, 100%, 10%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(210, 100%, 10%, 1) 0, transparent 50%),
+    #1A252F;
   background-size: 100% 100%;
 }
 
@@ -230,6 +245,7 @@ tr:hover {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -241,6 +257,7 @@ tr:hover {
     opacity: 0;
     transform: translateX(100%);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -248,7 +265,9 @@ tr:hover {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes slideUp {
@@ -256,6 +275,7 @@ tr:hover {
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -268,9 +288,11 @@ tr:hover {
     transform: translateY(24px) scale(0.99);
     box-shadow: 0 0 0 0 rgba(44, 62, 80, 0);
   }
+
   60% {
     box-shadow: 0 0 0 4px rgba(44, 62, 80, 0.08);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -283,6 +305,7 @@ tr:hover {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translateY(16px) scale(0.99);
@@ -322,7 +345,8 @@ tr:hover {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0; /* prevent flex child overflow */
+  min-width: 0;
+  /* prevent flex child overflow */
 }
 
 .layout-content {
@@ -356,7 +380,8 @@ tr:hover {
 }
 
 .hamburger-btn {
-  display: none; /* hidden on desktop */
+  display: none;
+  /* hidden on desktop */
   background: none;
   border: none;
   color: var(--color-text-main);
@@ -383,7 +408,7 @@ tr:hover {
   margin-bottom: 2.5rem;
 }
 
-.stat-cards > * {
+.stat-cards>* {
   flex: 1;
   min-width: 220px;
 }
@@ -425,8 +450,35 @@ tr:hover {
 
 /* ── Hide/Show helpers ── */
 .hide-on-mobile {}
-.show-on-mobile { display: none !important; }
-.show-on-mobile-flex { display: none !important; }
+
+.show-on-mobile {
+  display: none !important;
+}
+
+.show-on-mobile-flex {
+  display: none !important;
+}
+
+/* ── Modals ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  width: 90%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
 
 /* ═══════════════════════════════════════════════════════════ */
 /* MOBILE BREAKPOINT: ≤ 768px                                */
@@ -451,11 +503,13 @@ tr:hover {
 
   /* ── Sidebar logo area: prevent X overlap ── */
   .sidebar-logo-area {
-    padding: 1rem 3rem 1rem 1rem !important; /* extra right padding for the X */
+    padding: 1rem 3rem 1rem 1rem !important;
+    /* extra right padding for the X */
   }
 
   .sidebar-logo-area img {
-    max-height: 45px !important; /* shrink logo on mobile */
+    max-height: 45px !important;
+    /* shrink logo on mobile */
   }
 
   .sidebar-overlay {
@@ -512,7 +566,7 @@ tr:hover {
     margin-bottom: 1.75rem;
   }
 
-  .stat-cards > * {
+  .stat-cards>* {
     min-width: unset;
   }
 
@@ -539,10 +593,12 @@ tr:hover {
 
   /* ── Tables: horizontal scroll, NO text wrapping ── */
   table {
-    min-width: 500px; /* force scroll on narrow screens */
+    min-width: 500px;
+    /* force scroll on narrow screens */
   }
 
-  th, td {
+  th,
+  td {
     padding: 0.6rem 0.5rem;
     font-size: 0.8rem;
     white-space: nowrap;
@@ -556,12 +612,16 @@ tr:hover {
   }
 
   /* ── Forms: prevent fields clipping outside screen ── */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  .card input, .card select, .card textarea {
+  .card input,
+  .card select,
+  .card textarea {
     width: 100% !important;
     box-sizing: border-box !important;
   }
@@ -579,7 +639,7 @@ tr:hover {
     min-width: 0 !important;
   }
 
-  .pipeline-container > * {
+  .pipeline-container>* {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
@@ -602,7 +662,7 @@ tr:hover {
   }
 
   /* Header: wrap reopen button below title */
-  .timeline-card > div:first-child {
+  .timeline-card>div:first-child {
     flex-wrap: wrap !important;
     gap: 0.35rem !important;
     margin-bottom: 0.5rem !important;
@@ -652,7 +712,7 @@ tr:hover {
     align-items: flex-start !important;
   }
 
-  .timeline-meta > div {
+  .timeline-meta>div {
     font-size: 0.6rem !important;
     padding: 0.1rem 0.2rem !important;
     gap: 0.15rem !important;
@@ -660,7 +720,7 @@ tr:hover {
     word-break: break-word;
   }
 
-  .timeline-meta > div svg {
+  .timeline-meta>div svg {
     width: 9px !important;
     height: 9px !important;
     flex-shrink: 0;
@@ -672,7 +732,7 @@ tr:hover {
     min-width: unset !important;
   }
 
-  .timeline-transfer > div {
+  .timeline-transfer>div {
     align-items: flex-start !important;
     text-align: left !important;
     padding: 0.5rem 0.6rem !important;
@@ -724,7 +784,7 @@ tr:hover {
     margin: 0.75rem;
     max-width: 100% !important;
     border-radius: 18px !important;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
   }
 
   .login-card img,
@@ -768,27 +828,46 @@ tr:hover {
   }
 
   /* ── Hide/Show helpers ── */
-  .hide-on-mobile { display: none !important; }
-  .show-on-mobile { display: block !important; }
-  .show-on-mobile-flex { display: flex !important; }
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .show-on-mobile {
+    display: block !important;
+  }
+
+  .show-on-mobile-flex {
+    display: flex !important;
+  }
 
   /* ── Headings: scale down but not too small ── */
-  h1 { font-size: 1.25rem; margin-bottom: 0.5rem; }
-  h2 { font-size: 1.1rem; }
-  h3 { font-size: 0.95rem; }
+  h1 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+  }
+
+  h3 {
+    font-size: 0.95rem;
+  }
 
   /* ── Form rows that should stack ── */
   .form-row {
     flex-direction: column !important;
   }
 
-  .form-row > * {
+  .form-row>* {
     flex: unset !important;
     width: 100% !important;
   }
 
   /* ── General text overflow prevention ── */
-  p, span, div {
+  p,
+  span,
+  div {
     overflow-wrap: break-word;
     word-wrap: break-word;
   }
@@ -840,24 +919,37 @@ tr:hover {
     height: 40px !important;
   }
 
-  th, td {
+  th,
+  td {
     padding: 0.5rem 0.35rem;
     font-size: 0.75rem;
   }
 }
 
 @keyframes calendarHint {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); border-color: var(--color-primary); }
-  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); border-color: var(--color-border); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    border-color: var(--color-primary);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+    border-color: var(--color-border);
+  }
 }
+
 .calendar-hint-pulse {
   animation: calendarHint 1.5s ease-in-out 3;
   background-color: rgba(44, 62, 80, 0.1) !important;
   border-color: var(--color-primary) !important;
 }
+
 .calendar-hint-pulse:hover {
   background-color: var(--color-primary) !important;
 }
+
 .calendar-hint-pulse:hover svg {
   color: white !important;
 }
@@ -871,9 +963,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border-radius: 4px;
   animation: calendarHint 1.5s ease-in-out 3;
 }
+
 input[type="date"]::-webkit-calendar-picker-indicator:hover,
 input[type="time"]::-webkit-calendar-picker-indicator:hover {
   background-color: var(--color-primary);
   filter: invert(1);
 }
-
