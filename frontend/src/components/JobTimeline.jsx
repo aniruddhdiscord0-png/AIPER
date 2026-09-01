@@ -69,30 +69,30 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
       const s1_status = 'completed';
       const dStatus = distData?.status || 'PENDING';
       
-      const s2_status = instance
-        ? 'completed'
-        : ['ASSIGNED_TO_ASSISTANT', 'RETURNED', 'PENDING_REVIEW', 'REVIEW_APPROVED', 'COMPLETED'].includes(dStatus)
-          ? (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' ? 'active' : 'completed')
-          : 'active';
+      const s2_status = dStatus === 'RETURNED'
+        ? 'warning'
+        : instance
+          ? 'completed'
+          : ['ASSIGNED_TO_ASSISTANT', 'PENDING_REVIEW', 'REVIEW_APPROVED', 'COMPLETED'].includes(dStatus)
+            ? (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' ? 'active' : 'completed')
+            : 'active';
 
       let s3_status = 'pending', s3_date = null;
       let s4_status = 'pending';
 
       // s3 = Test Execution
-      if (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' || dStatus === 'PENDING') {
-        // Analyst not yet dispatched — still waiting
+      if (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' || dStatus === 'PENDING' || dStatus === 'RETURNED') {
+        // Analyst not yet dispatched, or job returned to officer
         s3_status = 'pending';
       } else if (dStatus === 'ASSIGNED_TO_ASSISTANT') {
-        s3_status = instance ? 'active' : 'pending';
-      } else if (dStatus === 'RETURNED') {
-        s3_status = 'warning';
+        s3_status = instance ? (latestReassign && instance.status === 'PENDING' ? 'warning' : 'active') : 'pending';
       } else if (dStatus === 'PENDING_HEAD_REVIEW' || dStatus === 'COMPLETED') {
         s3_status = 'completed';
         s3_date = headApproval ? headApproval.date : instance?.updatedAt;
       } else if (instance) {
         // Fallback: infer from instance status
         if (instance.status === 'PENDING') {
-          s3_status = 'active';
+          s3_status = latestReassign ? 'warning' : 'active';
         } else if (instance.status === 'PENDING_HEAD_REVIEW' || instance.status === 'COMPLETED') {
           s3_status = 'completed';
           s3_date = headApproval ? headApproval.date : instance.updatedAt;
@@ -117,7 +117,7 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
 
       const steps = [
         { id: 1, title: isRetest ? 'Retest Allocation' : 'Job Allocation', desc: 'Allocated by Admin Officer', status: s1_status, date: cycleJob.createdAt, user: `${cycleJob.createdBy?.name || 'Admin Officer'} (Admin Officer)` },
-        { id: 2, title: 'Analyst Dispatch', desc: instance ? `Code: ${formatJobCode(instance.testCode)}` : 'Awaiting Dept Head Dispatch', status: s2_status, date: instance?.createdAt, user: instance ? `${instance.createdBy?.name} (${title.split(' ')[0]} Head)` : (distData?.assignedHead?.name ? `${distData.assignedHead.name} (Pending)` : 'Pending Dept Head') },
+        { id: 2, title: 'Analyst Dispatch', desc: s2_status === 'warning' ? 'Returned to Admin Officer' : (instance ? `Code: ${formatJobCode(instance.testCode)}` : 'Awaiting Dept Head Dispatch'), status: s2_status, date: instance?.createdAt, user: instance ? `${instance.createdBy?.name} (${title.split(' ')[0]} Head)` : (distData?.assignedHead?.name ? `${distData.assignedHead.name} (Pending)` : 'Pending Dept Head') },
         { id: 3, title: 'Test Execution', desc: s3_status === 'completed' ? 'Results Submitted' : s3_status === 'warning' ? 'Reassigned – Corrections Needed' : 'Analysis in Progress', status: s3_status, date: s3_date, user: instance ? `${instance.assignedTo?.name} (Analyst)` : 'Pending Analyst' },
         { id: 4, title: 'Dept Head Review', desc: isDeptCompleted ? 'Report Generated' : isReopened ? 'Archived (Reopened)' : s4_status === 'active' ? 'Awaiting Dept Head Approval' : 'Pending Submission', status: s4_status, date: instance?.completedAt || headApproval?.date, user: instance ? `${instance.createdBy?.name} (${title.split(' ')[0]} Head)` : (distData?.assignedHead?.name ? `${distData.assignedHead.name} (Pending)` : 'Pending Dept Head') }
       ];
