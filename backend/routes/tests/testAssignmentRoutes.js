@@ -40,15 +40,15 @@ router.get('/instances', protect, async (req, res) => {
       const jobs = await Job.find({ _id: { $in: jobIds } }, 'sample.sample_description status');
       const jobMap = {};
       jobs.forEach(j => { jobMap[j._id.toString()] = j; });
-      
+
       return docs
         .filter(doc => {
           const parentJob = jobMap[doc.jobId?.toString()];
           return parentJob && parentJob.status !== 'ON_HOLD';
         })
-        .map(doc => ({ 
-          ...doc, 
-          sampleDescription: jobMap[doc.jobId?.toString()]?.sample?.sample_description || '' 
+        .map(doc => ({
+          ...doc,
+          sampleDescription: jobMap[doc.jobId?.toString()]?.sample?.sample_description || ''
         }));
     };
 
@@ -110,7 +110,7 @@ router.post('/instances', protect, authorize('HEAD'), async (req, res) => {
         if (!assistantMap[astId]) {
           assistantMap[astId] = [];
         }
-        
+
         if (assignment.isPanel) {
           // Fetch the parameters for the specific sub-panel (GCMSMS or LCMSMS)
           const group = await ParameterGroup.findOne({ isPesticidePanel: true, pesticidePanelType: 'food' }).populate('pesticideSubPanels.parameters.parameterId');
@@ -148,12 +148,49 @@ router.post('/instances', protect, authorize('HEAD'), async (req, res) => {
       }
     }
 
+    // Before processing individual analysts, fetch ALL HELD instances for this department.
+    // This allows us to rescue data for parameters that the Head might be reassigning
+    // from Analyst A to Analyst B after an unhold.
+    const allHeldInstances = await TestInstance.find({
+      jobId,
+      department: dept,
+      status: 'HELD'
+    }).sort({ _id: -1 });
+
+    const savedDataMap = {};
+    for (const inst of allHeldInstances) {
+      for (const r of inst.results) {
+        if (r.isSaved || (r.value && r.value.trim() !== '')) {
+          const paramId = String(r.parameterId);
+          // allHeldInstances is sorted by _id descending (newest first).
+          // We only take the value if we haven't already found a newer one.
+          if (!savedDataMap[paramId]) {
+            savedDataMap[paramId] = r.toObject ? r.toObject() : r;
+          }
+        }
+      }
+    }
+
     const createdInstances = [];
     const assistantIds = Object.keys(assistantMap);
 
     for (let i = 0; i < assistantIds.length; i++) {
       const astId = assistantIds[i];
-      const params = assistantMap[astId];
+      const rawParams = assistantMap[astId];
+
+      // Merge rescued data into the freshly assigned parameters
+      const params = rawParams.map(p => {
+        const saved = savedDataMap[String(p.parameterId)];
+        if (saved) {
+          return {
+            ...p,
+            value: saved.value || p.value,
+            testMethod: saved.testMethod || p.testMethod,
+            isSaved: saved.isSaved || false
+          };
+        }
+        return p;
+      });
 
       // If multiple assistants under the same department, differentiate with a letter suffix
       // e.g. 2605070001-1a, 2605070001-1b
@@ -161,36 +198,100 @@ router.post('/instances', protect, authorize('HEAD'), async (req, res) => {
         ? `${baseTestCode}${String.fromCharCode(97 + i)}` // a, b, c…
         : baseTestCode;
 
-      // Check for duplicate testCode (in case of re-dispatch after reopen)
-      const existingCount = await TestInstance.countDocuments({ testCode: { $regex: `^${suffix.replace(/-/g, '\\-')}` } });
-      const testCode = existingCount > 0 ? `${suffix}-v${existingCount + 1}` : suffix;
+      let testCode = suffix;
+      let heldInstance = null;
+      
+      const isReopen = Boolean(job.distribution[dept] && job.distribution[dept].reopenInfo);
 
-      const instance = await TestInstance.create({
-        jobId,
-        testCode,
-        clientName,
-        deadline,
-        department: dept,
-        assignedTo: astId,
-        results: params,
-        createdBy: req.user._id,
-        ...(job.distribution[dept] && job.distribution[dept].reopenInfo && job.distribution[dept].reopenInfo.parentInstanceId ? {
-          version: (job.distribution[dept].reopenInfo.parentVersion || 0) + 1,
-          parentInstanceId: job.distribution[dept].reopenInfo.parentInstanceId
-        } : {})
-      });
+      if (!isReopen) {
+        // Try to recycle the exact testCode document (e.g., from a previous hold/cancel cycle)
+        // This prevents generating -v2 suffixes when reassigning cross-analyst.
+        heldInstance = await TestInstance.findOne({ testCode: suffix, jobId });
+      }
+
+      if (heldInstance && ['HELD', 'CANCELLED'].includes(heldInstance.status)) {
+        // We can safely resurrect this document without generating a new testCode
+        testCode = suffix;
+      } else {
+        // We cannot resurrect (either it's a reopen, or the exact suffix is currently COMPLETED/PENDING)
+        // We must create a new one, ensuring uniqueness by adding -vX if necessary
+        heldInstance = null; // Clear it so we drop into TestInstance.create
+        const existingCount = await TestInstance.countDocuments({ testCode: { $regex: `^${suffix.replace(/-/g, '\\-')}` } });
+        if (existingCount > 0) {
+          testCode = `${suffix}-v${existingCount + 1}`;
+        }
+      }
+
+      let instance;
+
+      if (heldInstance) {
+        // We strictly set results to the newly merged `params`.
+        // This ensures any parameters the Head removed from this analyst are dropped,
+        // and newly assigned parameters are included, while preserving saved data.
+        heldInstance.results = params;
+        heldInstance.status = 'PENDING';
+        heldInstance.deadline = deadline;
+        heldInstance.assignedTo = astId;
+
+        // Clear stale state from the previous cycle — the job went through a full
+        // flow reset when held/unheld, so old reassignment history, retest constraints,
+        // and comparison snapshots are no longer relevant.
+        heldInstance.reviewHistory = [];
+        heldInstance.retestOnly = [];
+        heldInstance.previousResults = [];
+        heldInstance.completedAt = null;
+
+        await heldInstance.save();
+        instance = heldInstance;
+
+        // Notify Assistant
+        await createNotification({
+          recipient: astId,
+          type: 'ACTION_REQUIRED',
+          title: 'Test Re-assigned',
+          message: `Your task ${heldInstance.testCode} for job ${job.jobCode} has been re-assigned to you after being on hold.`,
+          relatedJobId: jobId,
+          relatedInstanceId: instance._id,
+          link: '/assistant'
+        });
+      } else {
+        instance = await TestInstance.create({
+          jobId,
+          testCode,
+          clientName,
+          deadline,
+          department: dept,
+          assignedTo: astId,
+          results: params,
+          createdBy: req.user._id,
+          ...(job.distribution[dept] && job.distribution[dept].reopenInfo && job.distribution[dept].reopenInfo.parentInstanceId ? {
+            version: (job.distribution[dept].reopenInfo.parentVersion || 0) + 1,
+            parentInstanceId: job.distribution[dept].reopenInfo.parentInstanceId
+          } : {})
+        });
+
+        // Notify Assistant
+        await createNotification({
+          recipient: astId,
+          type: 'ACTION_REQUIRED',
+          title: 'New Test Assigned',
+          message: `You have been assigned test ${testCode} for job ${job.jobCode}.`,
+          relatedJobId: jobId,
+          relatedInstanceId: instance._id,
+          link: '/assistant'
+        });
+      }
+
       createdInstances.push(instance);
+    }
 
-      // Notify Assistant
-      await createNotification({
-        recipient: astId,
-        type: 'ACTION_REQUIRED',
-        title: 'New Test Assigned',
-        message: `You have been assigned test ${testCode} for job ${job.jobCode}.`,
-        relatedJobId: jobId,
-        relatedInstanceId: instance._id,
-        link: '/assistant'
-      });
+    // Clean up any HELD instances in this department that were NOT resurrected
+    // (e.g. an analyst who was assigned previously but received no parameters in this dispatch)
+    const resurrectedIds = createdInstances.map(i => i._id.toString());
+    const obsoleteInstances = allHeldInstances.filter(i => !resurrectedIds.includes(i._id.toString()));
+    
+    for (const obs of obsoleteInstances) {
+      await TestInstance.updateOne({ _id: obs._id }, { $set: { status: 'CANCELLED' } });
     }
 
     // Update job distribution status

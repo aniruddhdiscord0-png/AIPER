@@ -71,11 +71,13 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
       
       const s2_status = dStatus === 'RETURNED'
         ? 'warning'
-        : instance
-          ? 'completed'
-          : ['ASSIGNED_TO_ASSISTANT', 'PENDING_REVIEW', 'REVIEW_APPROVED', 'COMPLETED'].includes(dStatus)
-            ? (dStatus === 'PENDING_REVIEW' || dStatus === 'REVIEW_APPROVED' ? 'active' : 'completed')
-            : 'active';
+        : dStatus === 'PENDING_REVIEW'
+          ? 'active'
+          : instance && instance.status !== 'HELD'
+            ? 'completed'
+            : ['ASSIGNED_TO_ASSISTANT', 'REVIEW_APPROVED', 'COMPLETED'].includes(dStatus)
+              ? 'completed'
+              : 'active';
 
       let s3_status = 'pending', s3_date = null;
       let s4_status = 'pending';

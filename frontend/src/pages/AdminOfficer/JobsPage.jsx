@@ -128,6 +128,7 @@ export default function Jobs() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [deleteConfirmJobId, setDeleteConfirmJobId] = useState(null);
   const [holdConfirmJobId, setHoldConfirmJobId] = useState(null);
+  const [loadingJobId, setLoadingJobId] = useState(null);
   const [holdReason, setHoldReason] = useState("");
   const [heads, setHeads] = useState([]);
   const [assignedMicroHead, setAssignedMicroHead] = useState("");
@@ -658,6 +659,7 @@ export default function Jobs() {
   const executeSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    if (editingJobId) setLoadingJobId(editingJobId);
     setShowConfirmModal(false);
 
     try {
@@ -815,7 +817,7 @@ export default function Jobs() {
         setAssignedChemicalHead("");
       }
       invalidateCache(CACHE_KEYS.JOBS_ALL, CACHE_KEYS.STATS);
-      fetchJobs();
+      await fetchJobs();
       fetchNextSerial();
     } catch (err) {
       console.error(err);
@@ -824,6 +826,7 @@ export default function Jobs() {
       );
     } finally {
       setIsSubmitting(false);
+      setLoadingJobId(null);
     }
   };
 
@@ -834,27 +837,31 @@ export default function Jobs() {
 
   const executeHoldJob = async () => {
     if (!holdConfirmJobId) return;
-    if (holdReason.trim().length < 10) {
-      alert("Please provide a valid reason (min 10 characters).");
+    if (holdReason.trim().length === 0) {
+      alert("Please provide a valid reason.");
       return;
     }
+    const targetJobId = holdConfirmJobId;
+    setHoldConfirmJobId(null);
+    setHoldReason("");
+    setLoadingJobId(targetJobId);
     try {
       await axios.put(
-        `${API_URL}/api/jobs/${holdConfirmJobId}/hold`,
+        `${API_URL}/api/jobs/${targetJobId}/hold`,
         { holdReason },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
       invalidateCache(CACHE_KEYS.JOBS_ALL, CACHE_KEYS.STATS);
-      fetchJobs();
-      setHoldConfirmJobId(null);
-      setHoldReason("");
+      await fetchJobs();
     } catch (err) {
       console.error(err);
       alert(
         "Error holding job: " + (err.response?.data?.message || err.message),
       );
+    } finally {
+      setLoadingJobId(null);
     }
   };
 
@@ -864,22 +871,26 @@ export default function Jobs() {
 
   const executeCancelJob = async () => {
     if (!deleteConfirmJobId) return;
+    const targetJobId = deleteConfirmJobId;
+    setDeleteConfirmJobId(null);
+    setLoadingJobId(targetJobId);
     try {
       await axios.put(
-        `${API_URL}/api/jobs/${deleteConfirmJobId}/cancel`,
+        `${API_URL}/api/jobs/${targetJobId}/cancel`,
         {},
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         },
       );
       invalidateCache(CACHE_KEYS.JOBS_ALL, CACHE_KEYS.STATS);
-      fetchJobs();
-      setDeleteConfirmJobId(null);
+      await fetchJobs();
     } catch (err) {
       console.error(err);
       alert(
         "Error cancelling job: " + (err.response?.data?.message || err.message),
       );
+    } finally {
+      setLoadingJobId(null);
     }
   };
 
@@ -2682,6 +2693,7 @@ export default function Jobs() {
         <JobLogTable
           jobs={jobs}
           title="All Client Sample Jobs"
+          loadingJobId={loadingJobId}
           onDeleteJob={handleDeleteJob}
           onEditJob={handleEditJob}
           onHoldJob={handleHoldJob}
@@ -2998,22 +3010,13 @@ export default function Jobs() {
                   color: "var(--color-text-main)",
                 }}
               >
-                Place Job on Hold
+                Hold job
               </h3>
-              <p
-                style={{
-                  margin: "0.5rem 0 0",
-                  fontSize: "0.9rem",
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                This will recall the job from the Head and Analyst queues while preserving their progress. The ULR slot (if reserved) will be freed.
-              </p>
             </div>
 
             <div style={{ marginBottom: "1.5rem" }}>
               <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: "500", color: "var(--color-text-main)" }}>
-                Hold Reason (min 10 characters) <span style={{ color: "var(--color-danger)" }}>*</span>
+                Hold Reason <span style={{ color: "var(--color-danger)" }}>*</span>
               </label>
               <textarea
                 value={holdReason}
@@ -3061,7 +3064,7 @@ export default function Jobs() {
               </button>
               <button
                 onClick={executeHoldJob}
-                disabled={holdReason.trim().length < 10}
+                disabled={holdReason.trim().length === 0}
                 style={{
                   flex: 1,
                   padding: "0.75rem",
@@ -3070,9 +3073,9 @@ export default function Jobs() {
                   borderRadius: "8px",
                   color: "#fff",
                   fontWeight: "600",
-                  cursor: holdReason.trim().length < 10 ? "not-allowed" : "pointer",
+                  cursor: holdReason.trim().length === 0 ? "not-allowed" : "pointer",
                   transition: "all 0.2s ease",
-                  opacity: holdReason.trim().length < 10 ? 0.6 : 1,
+                  opacity: holdReason.trim().length === 0 ? 0.6 : 1,
                 }}
               >
                 Confirm Hold

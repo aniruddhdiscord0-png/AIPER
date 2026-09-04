@@ -221,6 +221,7 @@ Dependencies within SP1 dictate this sequence:
 | SP2.P4 | F15 | Global Modal Daemon |
 | SP2.P5 | F13 | Analyst Reassignment Tracking |
 | SP2.P6 | F2 | Search Bar on Head's Pages |
+| SP2.P7 | F16 | Hide Test Code Suffixes in UI |
 
 ### SP3 — UX Polish + Infrastructure
 | Phase | ID | Title |

@@ -258,8 +258,8 @@ router.put('/:id/hold', protect, authorize('ADMIN_OFFICER', 'ADMIN'), async (req
     }
 
     const { holdReason } = req.body;
-    if (!holdReason || holdReason.trim().length < 10) {
-      return res.status(400).json({ message: 'A valid hold reason (min 10 chars) is required.' });
+    if (!holdReason || holdReason.trim().length === 0) {
+      return res.status(400).json({ message: 'A hold reason is required.' });
     }
 
     job.status = 'ON_HOLD';
@@ -280,6 +280,40 @@ router.put('/:id/hold', protect, authorize('ADMIN_OFFICER', 'ADMIN'), async (req
     }
 
     await job.save();
+
+    // Sibling hold logic
+    if (job.siblingJobId) {
+      const sibling = await Job.findById(job.siblingJobId);
+      if (sibling && sibling.status !== 'ON_HOLD' && sibling.status !== 'CANCELLED') {
+        sibling.status = 'ON_HOLD';
+        sibling.holdReason = holdReason;
+        sibling.heldAt = new Date();
+        sibling.heldBy = req.user._id;
+        
+        sibling.history.push({
+          action: 'HELD',
+          by: req.user._id,
+          note: `Job placed on hold: ${holdReason} (Synced from sibling job)`
+        });
+        
+        if (sibling.reservedUlrSlot) {
+          sibling.reservedUlrSlot = null;
+          sibling.reservedUlrYear = null;
+        }
+        
+        await sibling.save();
+        
+        audit('JOB_HELD', {
+          req,
+          message: `Job ${sibling.jobCode} placed on hold (sync)`,
+          target: { model: 'Job', documentId: sibling._id.toString(), identifier: sibling.jobCode }
+        });
+        
+        if (req.app.get('io')) {
+          req.app.get('io').emit('JOB_HELD', { jobId: sibling._id });
+        }
+      }
+    }
 
     audit('JOB_HELD', {
       req,

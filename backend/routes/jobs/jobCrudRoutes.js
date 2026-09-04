@@ -393,6 +393,21 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
       job.holdReason = null;
       job.heldAt = null;
       job.heldBy = null;
+      
+      // Full flow reset — distribution back to PENDING_REVIEW
+      if (job.distribution?.micro?.required) {
+        job.distribution.micro.status = 'PENDING_REVIEW';
+      }
+      if (job.distribution?.chemical?.required) {
+        job.distribution.chemical.status = 'PENDING_REVIEW';
+      }
+      
+      // Clear head approvals
+      job.headApproval = { micro: false, chemical: false };
+      
+      // Reset sample transfer state
+      const isMulti = job.distribution?.micro?.required && job.distribution?.chemical?.required;
+      job.sampleTransferState = isMulti ? 'PENDING_APPROVAL' : 'NOT_REQUIRED';
     }
 
     const { customer, sample, compliance, parameters, groupMetadata, pesticidePanel, sampleFlow, assignedMicroHead, assignedChemicalHead, showSpecifications } = req.body;
@@ -594,6 +609,21 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
       }
     }
 
+    // Freeze existing TestInstances if the job was on hold
+    if (wasOnHold) {
+      const TestInstance = require('../../models/TestInstance');
+      const instances = await TestInstance.find({ jobId: job._id, status: { $ne: 'CANCELLED' } });
+      
+      const currentParamIds = new Set(job.parameters.map(p => String(p.parameterId)));
+      
+      for (const instance of instances) {
+        instance.status = 'HELD';
+        // Strip out results for parameters that were removed
+        instance.results = instance.results.filter(r => currentParamIds.has(String(r.parameterId)));
+        await instance.save();
+      }
+    }
+
     // --- History Entry ---
     let actionType = 'UPDATED';
     let actionNote = 'Job updated by Admin Officer';
@@ -657,8 +687,39 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
           if (siblingPesticide) sibling.pesticidePanel = siblingPesticide;
           if (siblingShowSpecs !== undefined) sibling.showSpecifications = siblingShowSpecs;
         }
+        
+        let siblingActionNote = 'Synced from sibling job edit';
+
+        if (wasOnHold && sibling.status === 'ON_HOLD') {
+          sibling.status = 'ACTIVE';
+          sibling.holdReason = null;
+          sibling.heldAt = null;
+          sibling.heldBy = null;
+          
+          if (sibling.distribution?.micro?.required) {
+            sibling.distribution.micro.status = 'PENDING_REVIEW';
+          }
+          if (sibling.distribution?.chemical?.required) {
+            sibling.distribution.chemical.status = 'PENDING_REVIEW';
+          }
+          sibling.headApproval = { micro: false, chemical: false };
+          
+          const isSibMulti = sibling.distribution?.micro?.required && sibling.distribution?.chemical?.required;
+          sibling.sampleTransferState = isSibMulti ? 'PENDING_APPROVAL' : 'NOT_REQUIRED';
+          
+          siblingActionNote = 'Hold Released (Synced from sibling job edit)';
+          
+          const TestInstance = require('../../models/TestInstance');
+          const sibInstances = await TestInstance.find({ jobId: sibling._id, status: { $ne: 'CANCELLED' } });
+          const sibParamIds = new Set(sibling.parameters.map(p => String(p.parameterId)));
+          for (const instance of sibInstances) {
+            instance.status = 'HELD';
+            instance.results = instance.results.filter(r => sibParamIds.has(String(r.parameterId)));
+            await instance.save();
+          }
+        }
     
-        sibling.history.push({ action: 'UPDATED', by: req.user._id, note: 'Synced from sibling job edit' });
+        sibling.history.push({ action: 'UPDATED', by: req.user._id, note: siblingActionNote });
         await sibling.save({ validateBeforeSave: false });
       }
     }
@@ -705,7 +766,14 @@ router.put('/:id', protect, authorize('ADMIN_OFFICER'), async (req, res) => {
     }
 
     if (req.app.get('io')) {
-      req.app.get('io').emit('JOB_UPDATED');
+      if (wasOnHold) {
+        req.app.get('io').emit('JOB_HELD', { jobId: job._id });
+        if (nablMode === 'hybrid' && job.siblingJobId) {
+          req.app.get('io').emit('JOB_HELD', { jobId: job.siblingJobId });
+        }
+      } else {
+        req.app.get('io').emit('JOB_UPDATED');
+      }
       if (hasParamChanges2) {
         req.app.get('io').emit('PARAMETERS_MODIFIED', { jobId: job._id, jobCode: job.jobCode });
       }

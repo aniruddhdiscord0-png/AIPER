@@ -10,6 +10,7 @@ import {
   Edit,
   FileText,
   PauseCircle,
+  Loader2,
 } from "lucide-react";
 import JobTimeline from "./JobTimeline";
 import GlobalJobHistory from "./GlobalJobHistory";
@@ -25,6 +26,7 @@ export default function JobLogTable({
   onEditJob,
   onHoldJob,
   editingJobId,
+  loadingJobId,
   defaultExpandedId,
   hasMoreData,
   onLoadMoreData,
@@ -67,6 +69,9 @@ export default function JobLogTable({
 
   // Helper to determine a simple global status for a job
   const getJobStatus = (job) => {
+    if (job.status === "ON_HOLD") return "ON_HOLD";
+    if (job.status === "CANCELLED") return "CANCELLED";
+    
     let statuses = [];
     if (job.distribution?.micro?.required)
       statuses.push(job.distribution.micro.status);
@@ -129,7 +134,19 @@ export default function JobLogTable({
   const [historyJob, setHistoryJob] = useState(null);
   const [selectedReportJob, setSelectedReportJob] = useState(null);
 
-  const StatusBadge = ({ status }) => {
+  const StatusBadge = ({ status, isLoading }) => {
+    if (isLoading) {
+      return (
+        <span
+          className="badge badge-warning"
+          style={{ backgroundColor: "#FEF3C7", color: "#D97706", display: 'inline-flex', alignItems: 'center', gap: '0.4rem', width: 'fit-content' }}
+        >
+          <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} />
+          Updating...
+        </span>
+      );
+    }
+
     switch (status) {
       case "ON_HOLD":
         return (
@@ -386,6 +403,7 @@ export default function JobLogTable({
                             ? "CANCELLED"
                             : getJobStatus(job)
                         }
+                        isLoading={loadingJobId === job._id}
                       />
                     </td>
                     {showActions && (
@@ -487,7 +505,7 @@ export default function JobLogTable({
                             <Edit size={16} />
                           </button>
                         )}
-                        {onHoldJob && job.status === "ACTIVE" && (
+                        {onHoldJob && !["ON_HOLD", "COMPLETED", "CANCELLED"].includes(getJobStatus(job)) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -507,7 +525,7 @@ export default function JobLogTable({
                             <PauseCircle size={16} />
                           </button>
                         )}
-                        {onDeleteJob && job.status !== "CANCELLED" && (
+                        {onDeleteJob && !["COMPLETED", "CANCELLED"].includes(getJobStatus(job)) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -743,7 +761,7 @@ export default function JobLogTable({
                       <Edit size={16} />
                     </button>
                   )}
-                  {onHoldJob && job.status === "ACTIVE" && (
+                  {onHoldJob && !["ON_HOLD", "COMPLETED", "CANCELLED"].includes(getJobStatus(job)) && (
                     <button
                       onClick={() => onHoldJob(job._id)}
                       style={{
@@ -761,7 +779,7 @@ export default function JobLogTable({
                       <PauseCircle size={16} />
                     </button>
                   )}
-                  {onDeleteJob && job.status !== "CANCELLED" && (
+                  {onDeleteJob && !["COMPLETED", "CANCELLED"].includes(getJobStatus(job)) && (
                     <button
                       onClick={() => onDeleteJob(job._id)}
                       style={{

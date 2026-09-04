@@ -30,9 +30,10 @@ const testInstanceSchema = new mongoose.Schema({
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   status: {
     type: String,
-    enum: ['PENDING', 'PENDING_HEAD_REVIEW', 'COMPLETED', 'REOPENED', 'CANCELLED'],
+    enum: ['PENDING', 'PENDING_HEAD_REVIEW', 'COMPLETED', 'REOPENED', 'CANCELLED', 'HELD'],
     default: 'PENDING'
   },
+  department: { type: String, enum: ['micro', 'chemical'], default: null }, // which dept this belongs to
   results: [resultParameterSchema],
   previousResults: [resultParameterSchema], // snapshot of last submission for reference on reassignment
   retestOnly: [{ type: String }], // parameter IDs that need retesting (empty = all need testing)
