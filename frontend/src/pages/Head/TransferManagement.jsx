@@ -7,6 +7,7 @@ import { formatJobCode } from "../../utils/serialUtils";
 import { useSocket } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
+import { formatDateTime } from "../../utils/dateUtils";
 
 export default function TransferManagement() {
   const [incomingTransfers, setIncomingTransfers] = useState([]);
@@ -232,7 +233,7 @@ export default function TransferManagement() {
                           }}
                         >
                           Sent by: {transfer.sentBy?.name || "Unknown"} ·{" "}
-                          {new Date(transfer.sentAt).toLocaleString()}
+                          {formatDateTime(transfer.sentAt)}
                         </div>
                       </div>
                       <button

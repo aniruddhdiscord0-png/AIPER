@@ -14,6 +14,7 @@ import TransferManagement from "./TransferManagement";
 import { useSocket } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
 import { formatJobCode } from "../../utils/serialUtils";
+import { formatDate } from "../../utils/dateUtils";
 import InfiniteScroll from "../../components/InfiniteScroll";
 import JobDetailsModal from "../../components/JobDetailsModal";
 
@@ -453,7 +454,7 @@ export default function Dispatcher() {
                           color: "var(--color-text-muted)",
                         }}
                       >
-                        {new Date(job.createdAt).toLocaleDateString("en-IN")}
+                        {formatDate(job.createdAt)}
                       </div>
                       <div style={{ fontSize: "0.8rem", marginTop: "0.15rem" }}>
                         <span

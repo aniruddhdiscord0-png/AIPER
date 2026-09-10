@@ -250,6 +250,16 @@ const buildHeaderTable = (isNabl) => {
   return new Table({ rows: [new TableRow({ children: cells })], width: { size: PAGE_WIDTH_DXA, type: WidthType.DXA } });
 };
 
+const formatDate = (d) => {
+  if (!d) return 'N/A';
+  const date = new Date(d);
+  if (isNaN(date)) return 'N/A';
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
 const buildSampleInfoTable = (job) => {
   const customer = job.customer || {};
   const sample = job.sample || {};
@@ -257,28 +267,35 @@ const buildSampleInfoTable = (job) => {
   const { testReportNo, registrationNo } = deriveReportFields(job.jobCode);
   const fallbackDate = sample.received_date || job.createdAt;
   const completedAt = job.completedAt || fallbackDate;
-  const issueDate = new Date(completedAt).toLocaleDateString('en-IN');
-  const receiptDate = new Date(fallbackDate).toLocaleDateString('en-IN');
+  const issueDate = formatDate(completedAt);
+  const receiptDate = formatDate(fallbackDate);
   const tp = job.testingPeriod || {};
   const testingPeriodStr = tp.startDate && tp.endDate
-    ? `${new Date(tp.startDate).toLocaleDateString('en-IN')} to ${new Date(tp.endDate).toLocaleDateString('en-IN')}`
+    ? `${formatDate(tp.startDate)} to ${formatDate(tp.endDate)}`
     : 'N/A';
 
-  const contactPersonStr = customer.contact_person 
-    ? `${customer.contact_person}${customer.mobile_number ? ` , ${customer.mobile_number}` : ''}`
-    : (customer.mobile_number || 'N/A');
+  const customerInfoChildren = [
+    new Paragraph({ children: [new TextRun({ text: "Customer Name :  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_name || job.clientName || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
+    new Paragraph({ children: [new TextRun({ text: "Address :               ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_address || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } })
+  ];
+
+  if (customer.contact_person && customer.contact_person !== 'N/A') {
+    const contactPersonStr = customer.mobile_number ? `${customer.contact_person} , ${customer.mobile_number}` : customer.contact_person;
+    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Contact Person:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: contactPersonStr, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
+  } else if (customer.mobile_number && customer.mobile_number !== 'N/A') {
+    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Contact Person:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.mobile_number, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
+  }
+
+  if (customer.email && customer.email !== 'N/A') {
+    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Email :                  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.email, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
+  }
 
   const r = [];
 
   // Customer info row
   r.push(new TableRow({
     children: [new TableCell({
-      children: [
-        new Paragraph({ children: [new TextRun({ text: "Customer Name :  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_name || job.clientName || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
-        new Paragraph({ children: [new TextRun({ text: "Address :               ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_address || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
-        new Paragraph({ children: [new TextRun({ text: "Contact Person:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: contactPersonStr, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }),
-        new Paragraph({ children: [new TextRun({ text: "Email :                  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.email || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } })
-      ], columnSpan: 5, borders: BORDERS_ALL, margins: { top: 20, bottom: 20, left: 40, right: 40 }
+      children: customerInfoChildren, columnSpan: 5, borders: BORDERS_ALL, margins: { top: 20, bottom: 20, left: 40, right: 40 }
     })]
   }));
 

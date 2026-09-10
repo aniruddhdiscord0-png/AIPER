@@ -6,6 +6,8 @@ import { AuthContext } from '../context/AuthContext';
 import Spinner from '../components/Spinner';
 import { useSocket } from '../context/SocketContext';
 import API_URL from '../utils/api';
+import { formatDateTime } from '../utils/dateUtils';
+import { formatMessageTestCodes } from '../utils/codeUtils';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
@@ -258,11 +260,11 @@ export default function NotificationsPage() {
                   </div>
                 </div>
                 <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                  {notif.message}
+                  {formatMessageTestCodes(notif.message)}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                   <Clock size={12} />
-                  <span>{new Date(notif.createdAt).toLocaleString()}</span>
+                  <span>{formatDateTime(notif.createdAt)}</span>
                 </div>
               </div>
 

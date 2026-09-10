@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import API_URL from '../utils/api';
+import { formatDate } from '../utils/dateUtils';
+import { formatMessageTestCodes } from '../utils/codeUtils';
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -221,11 +223,11 @@ export default function NotificationBell() {
                       </h4>
                       <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem', whiteSpace: 'nowrap' }}>
                         <Clock size={12} />
-                        {new Date(notif.createdAt).toLocaleDateString('en-IN')}
+                        {formatDate(notif.createdAt)}
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
-                      {notif.message}
+                      {formatMessageTestCodes(notif.message)}
                     </p>
                   </div>
                   {!notif.read && (

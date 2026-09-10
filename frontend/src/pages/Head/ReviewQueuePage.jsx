@@ -3,6 +3,7 @@ import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from "../../utils/cache";
 import { cacheGet, cacheSet } from "../../utils/cacheStorage";
+import { formatDate, formatDateTime } from "../../utils/dateUtils";
 import API_URL from "../../utils/api";
 import Spinner from "../../components/Spinner";
 
@@ -343,7 +344,7 @@ export default function ReviewQueue() {
                           >
                             <strong>{rh.role}</strong> {rh.action}{" "}
                             {rh.note && `("${rh.note}")`}{" "}
-                            {new Date(rh.date).toLocaleString()}
+                            {formatDateTime(rh.date)}
                           </div>
                         ))}
                       </div>
@@ -380,13 +381,9 @@ export default function ReviewQueue() {
                         }}
                       >
                         <strong>Testing Period:</strong>{" "}
-                        {new Date(
-                          inst.testingPeriod.startDate,
-                        ).toLocaleDateString("en-IN")}{" "}
+                        {formatDate(inst.testingPeriod.startDate)}{" "}
                         to{" "}
-                        {new Date(
-                          inst.testingPeriod.endDate,
-                        ).toLocaleDateString("en-IN")}
+                        {formatDate(inst.testingPeriod.endDate)}
                       </div>
                     )}
 

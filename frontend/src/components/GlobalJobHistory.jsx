@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, PlusCircle, CheckCircle, RotateCcw, Edit, RefreshCw, X } from 'lucide-react';
+import { formatDateTime } from '../utils/dateUtils';
 
 export default function GlobalJobHistory({ history, job, onClose }) {
   // Support passing either full job object or just history array
@@ -94,7 +95,7 @@ export default function GlobalJobHistory({ history, job, onClose }) {
                         {event.action.replace(/_/g, ' ')}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                        {new Date(event.timestamp).toLocaleString('en-IN')}
+                        {formatDateTime(event.timestamp)}
                       </div>
                     </div>
                     

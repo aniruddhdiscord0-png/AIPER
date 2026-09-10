@@ -17,6 +17,7 @@ import GlobalJobHistory from "./GlobalJobHistory";
 import ReportModal from "./ReportModal";
 import InfiniteScroll from "./InfiniteScroll";
 import { formatJobCode } from "../utils/serialUtils";
+import { formatDate } from "../utils/dateUtils";
 
 export default function JobLogTable({
   jobs,
@@ -390,7 +391,7 @@ export default function JobLogTable({
                         opacity: job.status === "CANCELLED" ? 0.5 : 1,
                       }}
                     >
-                      {new Date(job.createdAt).toLocaleDateString("en-IN")}
+                      {formatDate(job.createdAt)}
                     </td>
                     <td
                       style={{ opacity: job.status === "CANCELLED" ? 0.5 : 1 }}
@@ -648,7 +649,7 @@ export default function JobLogTable({
                       marginTop: "0.2rem",
                     }}
                   >
-                    {new Date(job.createdAt).toLocaleDateString("en-IN")}
+                    {formatDate(job.createdAt)}
                   </div>
                 </div>
                 <StatusBadge 

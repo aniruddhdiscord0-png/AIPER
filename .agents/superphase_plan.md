@@ -6,11 +6,11 @@
 
 | SP | Name | Items | Goal |
 |---|---|---|---|
-| SP1 | MVP Delivery | F9, F1, B6, B5, F12, F5, F10, F4, B2, B3 | Ship all platform-critical and client-visible features/bugs |
-| SP2 | Core Stability | F14, F13, B1, F8, F15, F2 | Eliminate remaining data integrity bugs, build the shared UI infrastructure (toasts, modals) |
+| SP1 | MVP Delivery | F1, B6, B5, F12, F5, F10, F4, F9, F17, B2, B3 | Ship all platform-critical and client-visible features/bugs |
+| SP2 | Core Stability | F14, F13, B1, F8, F15, F2, F18 | Eliminate remaining data integrity bugs, build the shared UI infrastructure (toasts, modals, error handling) |
 | SP3 | UX Polish + Infrastructure | F7, F3, F6, B4, B7, C2, C3, C4, C5, C6 | UX improvements, performance chores, UI polish |
 | SP4 | Documentation | F11 | Full project documentation in `.agents/` |
-| SP5 | Future (Planned — No Start Date) | C1, C7 | DB schema revision and full UI revamp — only when explicitly planned in a dedicated sprint |
+| SP5 | Future (Planned — No Start Date) | C1, C7 | DB schema revision, full UI revamp — only when explicitly planned |
 
 ---
 
@@ -23,18 +23,19 @@ Dependencies within SP1 dictate this sequence:
 - **F10 must precede F1** (F1 reuses the preserve-progress mechanism from F10)
 - All other items are independent and ordered by blast radius (smallest changes first)
 
-| Phase | ID | Title |
-|---|---|---|
-| SP1.P1 | B6 | Hand Over / Receive Sample Modal Broken |
-| SP1.P2 | B2 | Timeline State Mismatch on RETURNED |
-| SP1.P3 | B3 | Deadline Lateness Indicator |
-| SP1.P4 | B5 | Retained Job Shows Stale ULR Preview |
-| SP1.P5 | F5 | Accidental Approve Safeguard |
-| SP1.P6 | F10 | Job Reassign Bug Fix |
-| SP1.P7 | F12 | Report Minor Tweaks |
-| SP1.P8 | F9 | Report Generation Overhaul |
-| SP1.P9 | F1 | Job Hold |
-| SP1.P10 | F4 | Multi-Job Dispatch |
+| Phase | ID | Title | Status |
+|---|---|---|---|
+| SP1.P1 | B6 | Hand Over / Receive Sample Modal Broken | ✅ Done |
+| SP1.P2 | B2 | Timeline State Mismatch on RETURNED | ✅ Done |
+| SP1.P3 | B3 | Deadline Lateness Indicator | ✅ Done |
+| SP1.P4 | B5 | Retained Job Shows Stale ULR Preview | ✅ Done |
+| SP1.P5 | F5 | Accidental Approve Safeguard | ✅ Done |
+| SP1.P6 | F10 | Job Reassign Bug Fix | ✅ Done |
+| SP1.P7 | F12 | Report Minor Tweaks | ✅ Done |
+| SP1.P8 | F9 | New Addition of Special Group — Water 10500 | ⬜ Planned |
+| SP1.P9 | F1 | Job Hold | ✅ Done |
+| SP1.P10 | F4 | Multi-Job Dispatch | ⬜ Next |
+| SP1.P11 | F17 | DB Export / Backup | ⬜ Planned |
 
 ---
 
@@ -150,25 +151,11 @@ Dependencies within SP1 dictate this sequence:
 
 ---
 
-### SP1.P8 — F9: Report Generation Overhaul
+### SP1.P8 — F9: New Addition of Special Group — Water 10500
 
-**Files**: `backend/services/reportGenerator.js`, `backend/routes/exportRoutes.js`, `frontend/src/components/ReportModal.jsx`
+**Files**: Backend parameter/group routes, Admin seed scripts, `reportGenerator.js`
 
-> This is the most complex phase. Subphases are structured to be incremental — each one produces a testable intermediate output.
-
-| Subphase | Task |
-|---|---|
-| SP1.P8.1 | **Reference analysis**: Open `DRINKING WATER 1741 as per 10500.docx` (in `/temp`). Catalogue every section in order: header, lab info block, job/sample info table, test parameters table (column headers, row structure, span rules), results calculation columns, conclusion/remarks block, signature/signatory block, footer |
-| SP1.P8.2 | **Map current vs. reference**: Run the current report generator on a test job and compare output section-by-section against the reference. Create a diff list of every discrepancy |
-| SP1.P8.3 | **Header + Lab Info block**: Fix/rebuild the top portion of the document — lab name, address, NABL logo placement, accreditation number, document title, report number, date formatting |
-| SP1.P8.4 | **Customer + Sample Info table**: Fix the customer details rows (using the F12 contact split as baseline), sample description, ULR number position, collection date, received date formatting |
-| SP1.P8.5 | **Test parameters table**: Rebuild the parameter results table — column headers (Sr No, Parameter, Method, Unit, Permissible Limit, Observed Value, Remark), column widths, merged cell handling for parameter groups |
-| SP1.P8.6 | **Results and calculations**: Verify observed values, permissible limit comparisons, and the PASS/FAIL or Conform/Not-Conform remark logic matches the reference |
-| SP1.P8.7 | **Conclusion + Remarks block**: Rebuild the conclusion paragraph and special remarks section below the parameter table |
-| SP1.P8.8 | **Signature + Signatory block**: Rebuild the authorized signatory section with the Ms. prefix fix (from F12), proper spacing, designation labels |
-| SP1.P8.9 | **Re-verify `exportRoutes.js` NOTE at line 69**: Confirm the "do not append orphaned TestInstance results" decision is still valid after the restructure. Document the final decision in a code comment |
-| SP1.P8.10 | **End-to-end test**: Generate the report on a real job, compare to reference doc page-by-page. Fix any remaining spacing, font, or table border mismatches |
-| SP1.P8.11 | **In-browser preview** (`ReportModal.jsx`): Update the HTML preview to match the new structure as closely as reasonably possible. This is secondary to the DOCX output but should not be left broken |
+> Similar to the pesticides panel grouping. This adds the IS 10500:2012 drinking water standard as a special parameter group with its full set of chemical, physical, and microbiological parameters. Analysis work (structural diff, font audit, python-docx extraction of target report format) is preserved in `/temp/report/`.
 
 ---
 
@@ -210,6 +197,24 @@ Dependencies within SP1 dictate this sequence:
 
 ---
 
+### SP1.P11 — F17: DB Export / Backup
+
+**Files**: New backend route, Admin UI
+
+> A one-click export button for the admin to download a full backup of all MongoDB collections as a single archive.
+
+| Subphase | Task |
+|---|---|
+| SP1.P11.1 | **Backend route**: Create `GET /api/admin/export` (admin-only). Use `mongoose.connection.db.listCollections()` to enumerate all collections, then `find({})` on each to dump all documents |
+| SP1.P11.2 | **Format**: Output as a single `.json` file containing `{ collectionName: [documents...], ... }` for all collections. Stream the response with `Content-Disposition: attachment` header |
+| SP1.P11.3 | **Filename**: Auto-generate as `aiper_backup_YYYY-MM-DD_HHmmss.json` |
+| SP1.P11.4 | **Frontend button**: Add an "Export Database" button on the Admin dashboard. On click, trigger a download via the export endpoint |
+| SP1.P11.5 | **Loading state**: Show a spinner/progress indicator while the export is being prepared (large DBs may take a few seconds) |
+| SP1.P11.6 | **Authorization**: Ensure the route is strictly `protect + authorize('ADMIN')` |
+| SP1.P11.7 | **Test**: Export from `local_db`, verify all collections are present and documents match count |
+
+---
+
 ## SP2–SP4 Overview (Detail to be planned after SP1 is complete)
 
 ### SP2 — Core Stability
@@ -220,8 +225,9 @@ Dependencies within SP1 dictate this sequence:
 | SP2.P3 | F8 | Toast System Overhaul |
 | SP2.P4 | F15 | Global Modal Daemon |
 | SP2.P5 | F13 | Analyst Reassignment Tracking |
-| SP2.P6 | F2 | Search Bar on Head's Pages |
+| SP2.P6 | F2 | Head Pages — Search, Filter & Sort |
 | SP2.P7 | F16 | Hide Test Code Suffixes in UI |
+| SP2.P8 | F18 | Error Handling & Modal Overhaul (Bonus) |
 
 ### SP3 — UX Polish + Infrastructure
 | Phase | ID | Title |

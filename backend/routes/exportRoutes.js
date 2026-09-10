@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const mongoose = require('mongoose');
 const { protect, adminOrHead } = require('../middlewares/authMiddleware');
+const { authorize } = require('../middlewares/roleMiddleware');
 const Job = require('../models/Job');
 const TestInstance = require('../models/TestInstance');
 const { generateReport } = require('../services/reportGenerator');
@@ -255,6 +257,45 @@ router.get('/report/:jobId/status', protect, async (req, res) => {
   } catch (error) {
     console.error('Error fetching report status:', error);
     res.status(500).json({ message: 'Failed to fetch report status', error: error.message });
+  }
+});
+
+
+/**
+ * @desc    Export full database backup as JSON
+ * @route   GET /api/export/db-backup
+ * @access  Admin only
+ * @returns Single JSON file: { collectionName: [documents...] }
+ */
+router.get('/db-backup', protect, authorize('ADMIN'), async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+
+    // Enumerate all collections
+    const collectionInfos = await db.listCollections().toArray();
+
+    const backup = {};
+    for (const info of collectionInfos) {
+      const name = info.name;
+      backup[name] = await db.collection(name).find({}).toArray();
+    }
+
+    // Build filename: FTL_LIMS_DD-MM-YYYY_ssmmHH.json
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const filename = `FTL_LIMS_${dd}-${mm}-${yyyy}_${ss}${min}${hh}.json`;
+
+    res.set('Content-Type', 'application/json');
+    res.set('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(backup, null, 2));
+  } catch (error) {
+    console.error('Error generating DB backup:', error);
+    res.status(500).json({ message: 'Failed to generate backup', error: error.message });
   }
 });
 

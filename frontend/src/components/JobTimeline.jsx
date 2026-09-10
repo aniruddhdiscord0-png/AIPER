@@ -1,6 +1,8 @@
 import React, { useContext } from 'react';
 import { User, Calendar, CheckCircle, Clock, AlertTriangle, RotateCcw, ArrowRightLeft } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { formatDateTime } from '../utils/dateUtils';
+import { formatTestCode } from '../utils/codeUtils';
 
 export default function JobTimeline({ job, allJobs = [], onReopen }) {
   const { user } = useContext(AuthContext);
@@ -8,12 +10,8 @@ export default function JobTimeline({ job, allJobs = [], onReopen }) {
   const childJobs = allJobs?.filter(j => j.parentJobId === job._id).sort((a, b) => a.retestNumber - b.retestNumber) || [];
   const timelineSequence = [job, ...childJobs];
 
-  const formatDate = (d) => new Date(d).toLocaleString();
-
-  const formatJobCode = (code) => {
-    if (!code) return '';
-    return code.replace(/-N[12]([a-z]?)(?:-v\d+)?$/g, '-N$1').replace(/-[12][a-z]?(?:-v\d+)?$/g, '');
-  };
+  const formatDate = formatDateTime;
+  const formatJobCode = formatTestCode;
 
   const JobCycle = ({ cycleJob, isRetest }) => {
     const instances = cycleJob.testInstances || [];

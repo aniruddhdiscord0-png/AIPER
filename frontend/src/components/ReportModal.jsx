@@ -3,6 +3,7 @@ import { X, Download, UploadCloud, RotateCcw, FileText, AlertCircle, CheckCircle
 import axios from 'axios';
 import API_URL from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
+import { formatDateTime } from '../utils/dateUtils';
 import ReportPreview from './ReportPreview';
 import Spinner from './Spinner';
 
@@ -128,12 +129,7 @@ export default function ReportModal({ job, onClose }) {
   };
 
   // Format date helper
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: true
-    });
-  };
+  const formatDate = formatDateTime;
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>

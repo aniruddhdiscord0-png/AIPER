@@ -9,6 +9,7 @@ import { AuthContext } from "../../context/AuthContext";
 
 import { Play, Check, CheckCircle, Users, Activity, Clock, FileText, ChevronRight } from "lucide-react";
 import { formatJobCode } from "../../utils/serialUtils";
+import { formatTestCode } from "../../utils/codeUtils";
 
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -265,7 +266,7 @@ export default function Dashboard() {
                         fontSize: "0.85rem",
                       }}
                     >
-                      {formatJobCode(inst.testCode)}
+                      {formatTestCode(inst.testCode)}
                     </td>
                     <td style={{ fontWeight: 500 }}>{inst.clientName}</td>
                     <td>

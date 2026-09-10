@@ -6,6 +6,8 @@ import { fetchWithCache, invalidateCache, CACHE_KEYS, isCached } from '../utils/
 import Spinner from '../components/Spinner';
 import { useSocket } from '../context/SocketContext';
 import API_URL from '../utils/api';
+import { formatDate, formatDateTime } from '../utils/dateUtils';
+import { formatTestCode } from '../utils/codeUtils';
 
 
 
@@ -35,10 +37,7 @@ export default function AssistantDashboard() {
   const descDebounceRef = useRef(null);
   const isTypingDescRef = useRef(false);
 
-  const formatJobCode = (code) => {
-    if (!code) return '';
-    return code.replace(/-N[12]([a-z]?)(?:-v\d+)?$/g, '-N$1').replace(/-[12][a-z]?(?:-v\d+)?$/g, '');
-  };
+  const formatJobCode = formatTestCode;
 
   const fetchTasks = async () => {
     try {
@@ -481,7 +480,7 @@ export default function AssistantDashboard() {
             </div>
             <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <span className={`badge ${isOverdue(activeTask.deadline) ? 'badge-danger' : 'badge-warning'}`} style={{ fontSize: '0.9rem' }}>
-                Target: {new Date(activeTask.deadline).toLocaleString()}
+                Target: {formatDateTime(activeTask.deadline)}
               </span>
               {isOverdue(activeTask.deadline) && (
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-danger)', backgroundColor: 'var(--color-danger-light)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>Overdue</span>
@@ -503,7 +502,7 @@ export default function AssistantDashboard() {
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-text-main)' }}>"{latestNote.note}"</div>
                   )}
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.3rem' }}>
-                    {new Date(latestNote.date).toLocaleString()}
+                    {formatDateTime(latestNote.date)}
                   </div>
                 </div>
               </div>
@@ -690,7 +689,7 @@ export default function AssistantDashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   {isReassigned(task) ? <span className="badge" style={{ backgroundColor: 'rgba(231, 76, 60, 0.1)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><RotateCcw size={12} /> Reassigned</span> : <span className="badge badge-warning" style={{ backgroundColor: 'rgba(241, 196, 15, 0.1)', color: '#d35400' }}>Pending</span>}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: isOverdue(task.deadline) ? 'var(--color-danger)' : 'var(--color-text-muted)', fontWeight: isOverdue(task.deadline) ? 600 : 400 }}>{new Date(task.deadline).toLocaleDateString('en-IN')}</span>
+                    <span style={{ fontSize: '0.8rem', color: isOverdue(task.deadline) ? 'var(--color-danger)' : 'var(--color-text-muted)', fontWeight: isOverdue(task.deadline) ? 600 : 400 }}>{formatDate(task.deadline)}</span>
                     {isOverdue(task.deadline) && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--color-danger)', backgroundColor: 'var(--color-danger-light)', padding: '0.15rem 0.3rem', borderRadius: '3px' }}>Overdue</span>}
                   </div>
                 </div>

@@ -11,6 +11,7 @@ import { cacheGet, cacheSet } from '../utils/cacheStorage';
 import Spinner from '../components/Spinner';
 import API_URL from '../utils/api';
 import { formatJobCode } from '../utils/serialUtils';
+import { formatTestCode } from '../utils/codeUtils';
 
 function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -148,7 +149,7 @@ function Dashboard() {
               ) : (
                 recentActivity.map(inst => (
                   <tr key={inst._id}>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{formatJobCode(inst.testCode)}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{formatTestCode(inst.testCode)}</td>
                     <td style={{ fontWeight: 500 }}>{inst.clientName}</td>
                     <td>{inst.assignedTo?.name || <span style={{ color: 'var(--color-text-muted)' }}>Unassigned</span>}</td>
                     <td>

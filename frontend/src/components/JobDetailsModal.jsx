@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, FileText, ClipboardList, Info, ShieldCheck } from 'lucide-react';
+import { formatDate } from '../utils/dateUtils';
 
 export default function JobDetailsModal({ job, onClose }) {
   if (!job) return null;
@@ -56,7 +57,7 @@ export default function JobDetailsModal({ job, onClose }) {
               <div><strong>Job Type:</strong><br/>{job.sample?.nabl_type || 'N/A'}</div>
               {job.sample?.ulr_no && <div style={{ gridColumn: '1 / -1' }}><strong>ULR No:</strong><br/>{job.sample?.ulr_no}</div>}
               <div style={{ gridColumn: '1 / -1' }}><strong>Description:</strong><br/>{job.sample?.sample_description || 'N/A'}</div>
-              <div><strong>Received Date:</strong><br/>{job.sample?.received_date ? new Date(job.sample.received_date).toLocaleDateString('en-IN') : 'N/A'}</div>
+              <div><strong>Received Date:</strong><br/>{job.sample?.received_date ? formatDate(job.sample.received_date) : 'N/A'}</div>
               <div><strong>Received Mode:</strong><br/>{job.sample?.received_mode || 'N/A'}</div>
               <div><strong>Condition:</strong><br/>{job.sample?.condition_on_receipt || 'N/A'}</div>
               <div><strong>Packing Details:</strong><br/>{job.sample?.packing_details || 'N/A'}</div>
