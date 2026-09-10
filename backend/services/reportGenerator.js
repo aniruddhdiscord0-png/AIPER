@@ -279,15 +279,13 @@ const buildSampleInfoTable = (job) => {
     new Paragraph({ children: [new TextRun({ text: "Address :               ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.customer_address || 'N/A', font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } })
   ];
 
-  if (customer.contact_person && customer.contact_person !== 'N/A') {
-    const contactPersonStr = customer.mobile_number ? `${customer.contact_person} , ${customer.mobile_number}` : customer.contact_person;
-    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Contact Person:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: contactPersonStr, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
-  } else if (customer.mobile_number && customer.mobile_number !== 'N/A') {
-    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Contact Person:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.mobile_number, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
-  }
+  const contactParts = [];
+  if (customer.contact_person && customer.contact_person !== 'N/A') contactParts.push(customer.contact_person);
+  if (customer.mobile_number && customer.mobile_number !== 'N/A') contactParts.push(`Mobile : ${customer.mobile_number}`);
+  if (customer.email && customer.email !== 'N/A') contactParts.push(`Email : ${customer.email}`);
 
-  if (customer.email && customer.email !== 'N/A') {
-    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Email :                  ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: customer.email, font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
+  if (contactParts.length > 0) {
+    customerInfoChildren.push(new Paragraph({ children: [new TextRun({ text: "Contact details:    ", bold: true, font: "Times New Roman", size: 20 }), new TextRun({ text: contactParts.join("  "), font: "Times New Roman", size: 20 })], spacing: { before: 0, after: 0 } }));
   }
 
   const r = [];
